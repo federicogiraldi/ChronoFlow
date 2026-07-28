@@ -350,3 +350,63 @@ body {
     background-color: var(--border-color);
     border-color: var(--accent-blue);
 }
+
+/* ========================================== */
+/* RESPONSIVE DESIGN PER MOBILE (<= 768px)     */
+/* ========================================== */
+@media screen and (max-width: 768px) {
+    
+    /* 1. Corpo della pagina a scorrimento verticale naturale */
+    body {
+        padding: 10px;
+        height: auto;
+    }
+
+    /* 2. Trasformiamo il layout principale da affiancato a colonna verticale */
+    .app-container {
+        flex-direction: column;
+        height: auto;
+        gap: 15px;
+    }
+
+    /* 3. Sidebar e Calendario occupano il 100% della larghezza disponibile */
+    .sidebar, .calendar-view {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* 4. Riduciamo l'altezza delle celle del calendario per non appesantire lo scroll */
+    .calendar-day {
+        min-height: 65px;
+        padding: 5px;
+    }
+
+    /* 5. Intestazione del calendario flessibile per smartphone */
+    .calendar-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .month-navigation {
+        justify-content: space-between;
+    }
+
+    .month-navigation h2 {
+        font-size: 1.1rem;
+        min-width: auto;
+        text-align: center;
+    }
+
+    #open-modal-btn {
+        width: 100%;
+    }
+
+    /* 6. Finestre modali adattate allo schermo dello smartphone */
+    .modal-content {
+        width: 90%;
+        max-width: 340px;
+        padding: 1.5rem;
+    }
+}
