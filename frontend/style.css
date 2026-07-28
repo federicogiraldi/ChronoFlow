@@ -1,0 +1,352 @@
+/* Definiamo le variabili per la Dark Mode predefinita */
+:root {
+    --bg-color: #121212;
+    --surface-color: #1e1e1e;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --border-color: #333333;
+    --accent-blue: #3788d8;
+    --accent-red: #d9534f;
+}
+
+/* Reset base per uniformare i margini su tutti i browser */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Impostiamo il corpo della pagina per occupare sempre il 100% dell'altezza visibile (100vh) */
+body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    height: 100vh;
+    display: flex;
+    flex-direction: column; /* Impila Header e App-Container verticalmente */
+    overflow: hidden; /* Impedisce lo scroll dell'intera pagina */
+}
+
+/* Stile dell'Header */
+.app-header {
+    background-color: var(--surface-color);
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.app-header h1 {
+    font-size: 1.5rem;
+    color: var(--accent-blue);
+}
+
+/* Contenitore principale a due colonne */
+.app-container {
+    display: flex;
+    flex: 1; /* Occupa tutto lo spazio verticale rimanente sotto l'header */
+    overflow: hidden;
+}
+
+/* Sidebar Promemoria */
+.sidebar {
+    width: 320px;
+    background-color: var(--surface-color);
+    border-right: 1px solid var(--border-color);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar h2 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+}
+
+/* Area Calendario */
+.calendar-view {
+    flex: 1; /* Prende tutto lo spazio orizzontale rimanente accanto alla sidebar */
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-color);
+}
+
+.calendar-view h2 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+}
+
+/* --- GRIGLIA DEL CALENDARIO --- */
+.calendar-grid {
+    display: grid;
+    /* Crea 7 colonne uguali per i giorni della settimana */
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    flex: 1; /* Prende tutto lo spazio verticale rimasto */
+}
+
+/* Stile per il singolo quadrato del giorno */
+.calendar-day {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px;
+    min-height: 100px; /* Altezza minima per poterci inserire gli eventi */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Celle vuote prima dell'inizio del mese */
+.calendar-day.empty {
+    background-color: transparent;
+    border: none;
+}
+
+/* --- STILE LISTA PROMEMORIA (Aggiornato) --- */
+.reminder-item {
+    background-color: var(--bg-color);
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    border-left: 4px solid var(--accent-blue);
+    display: flex;
+    justify-content: space-between; /* Spinge la X tutta a destra */
+    align-items: center;
+}
+
+/* Raggruppa checkbox e testo a sinistra */
+.reminder-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Stile del pulsante cestino/X */
+.delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.delete-btn:hover {
+    color: var(--accent-red);
+}
+
+/* --- FORM PROMEMORIA --- */
+.add-reminder-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.add-reminder-form input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    outline: none;
+}
+
+.add-reminder-form input:focus {
+    border-color: var(--accent-blue);
+}
+
+.add-reminder-form button {
+    background-color: var(--accent-blue);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    width: 40px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.add-reminder-form button:hover {
+    background-color: #2b70b5;
+}
+
+/* --- HEADER DEL CALENDARIO --- */
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.btn-primary {
+    background-color: var(--accent-blue);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #2b70b5;
+}
+
+/* --- FINESTRA MODALE --- */
+.modal {
+    position: fixed; /* Si stacca dal normale flusso della pagina */
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6); /* Sfondo semitrasparente scuro */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Assicura che sia sopra tutto il resto */
+}
+
+/* Classe fondamentale: JavaScript la aggiungerà/rimuoverà per mostrare la modale */
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background-color: var(--surface-color);
+    padding: 2rem;
+    border-radius: 12px;
+    width: 400px;
+    border: 1px solid var(--border-color);
+    position: relative;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+.modal-content h2 {
+    margin-bottom: 1.5rem;
+    color: var(--accent-blue);
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.close-btn:hover {
+    color: var(--accent-red);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.form-group input {
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    outline: none;
+}
+
+.form-group input:focus {
+    border-color: var(--accent-blue);
+}
+
+#save-event-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px;
+}
+
+/* --- EVENTI NEL CALENDARIO --- */
+.calendar-event {
+    margin-top: 5px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    color: white;
+    font-size: 0.8rem;
+    cursor: pointer;
+    overflow: hidden;
+    white-space: nowrap; /* Impedisce al testo di andare a capo */
+    text-overflow: ellipsis; /* Aggiunge i "..." se il titolo è troppo lungo */
+    transition: opacity 0.2s;
+}
+
+.calendar-event:hover {
+    opacity: 0.8;
+}
+
+/* --- MODALE DETTAGLI EVENTO --- */
+.details-group {
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.details-group strong {
+    color: var(--text-secondary);
+    display: inline-block;
+    width: 60px;
+}
+
+.btn-danger {
+    background-color: var(--accent-red);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 15px;
+    transition: background-color 0.2s;
+}
+
+.btn-danger:hover {
+    background-color: #b53f3b;
+}
+
+/* --- NAVIGAZIONE MESE --- */
+.month-navigation {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.month-navigation h2 {
+    font-size: 1.4rem;
+    color: var(--text-primary);
+    text-transform: capitalize; /* Capitalizza il nome del mese (es. "Luglio") */
+    min-width: 180px;
+}
+
+.nav-btn {
+    background-color: var(--surface-color);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.nav-btn:hover {
+    background-color: var(--border-color);
+    border-color: var(--accent-blue);
+}

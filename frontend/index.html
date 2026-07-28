@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChronoFlow - Calendario e Promemoria</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <header class="app-header">
+        <h1>ChronoFlow</h1>
+    </header>
+
+    <div class="app-container">
+        
+        <aside class="sidebar">
+            <h2>Promemoria</h2>
+            
+            <div class="add-reminder-form">
+                <input type="text" id="new-reminder-input" placeholder="Nuovo promemoria...">
+                <button id="add-reminder-btn">+</button>
+            </div>
+
+            <div id="reminders-list" class="reminders-list">
+                <p>Nessun promemoria al momento.</p>
+            </div>
+        </aside>
+
+        <main class="calendar-view">
+           <div class="calendar-header">
+                <div class="month-navigation">
+                    <button id="prev-month-btn" class="nav-btn">&lt;</button>
+                    <h2 id="current-month-label">Mese Anno</h2>
+                    <button id="next-month-btn" class="nav-btn">&gt;</button>
+                </div>
+                <button id="open-modal-btn" class="btn-primary">+ Nuovo Evento</button>
+            </div>
+            
+            <div id="calendar-grid" class="calendar-grid">
+                <p>Caricamento calendario...</p>
+            </div>
+        </main>
+
+    </div>
+
+    <div id="event-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="close-modal-btn" class="close-btn">&times;</span>
+            <h2>Aggiungi Evento</h2>
+            
+            <div class="form-group">
+                <label for="event-title">Titolo Evento</label>
+                <input type="text" id="event-title" placeholder="Es. Riunione di Progetto">
+            </div>
+            
+            <div class="form-group">
+                <label for="event-start">Inizio</label>
+                <input type="datetime-local" id="event-start">
+            </div>
+            
+            <div class="form-group">
+                <label for="event-end">Fine</label>
+                <input type="datetime-local" id="event-end">
+            </div>
+            
+            <button id="save-event-btn" class="btn-primary">Salva nel Calendario</button>
+        </div>
+    </div>
+
+    <div id="event-details-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="close-details-modal-btn" class="close-btn">&times;</span>
+            <h2 id="details-event-title">Titolo Evento</h2>
+            
+            <div class="details-group">
+                <strong>Inizio:</strong>
+                <span id="details-event-start">-</span>
+            </div>
+            
+            <div class="details-group">
+                <strong>Fine:</strong>
+                <span id="details-event-end">-</span>
+            </div>
+            
+            <button id="delete-event-btn" class="btn-danger">Elimina Evento</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
