@@ -2,7 +2,7 @@ process.env.TZ = 'Europe/Rome';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseLocal } from '../../frontend/js/dates.js';
-import { dueNotifications } from '../../frontend/js/notifications.js';
+import { dueNotifications } from '../../frontend/js/due.js';
 
 const event = {
     id: 1,

@@ -2,7 +2,7 @@
 // - File dell'app: prima la rete (così gli aggiornamenti arrivano subito), poi la cache se offline.
 // - Elenco eventi e promemoria: prima la rete, poi l'ultima copia salvata se offline.
 // - Tutte le altre chiamate API (modifiche, login) passano sempre dalla rete.
-const CACHE = 'chronoflow-v2';
+const CACHE = 'chronoflow-v3';
 const APP_SHELL = [
     './',
     'index.html',
@@ -12,6 +12,7 @@ const APP_SHELL = [
     'js/api.js',
     'js/calendar.js',
     'js/dates.js',
+    'js/due.js',
     'js/ics.js',
     'js/notifications.js',
     'js/recurrence.js',
@@ -69,6 +70,24 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     event.respondWith(networkFirst(request));
+});
+
+// Notifica push inviata dal server (arriva anche ad app chiusa)
+self.addEventListener('push', (event) => {
+    let data;
+    try {
+        data = event.data ? event.data.json() : {};
+    } catch {
+        data = { body: event.data?.text() };
+    }
+    event.waitUntil(
+        self.registration.showNotification(data.title || 'ChronoFlow', {
+            body: data.body || '',
+            tag: data.tag,
+            icon: 'icons/icon-192.png',
+            badge: 'icons/icon-192.png',
+        })
+    );
 });
 
 // Clic su una notifica: porta in primo piano l'app (o la apre)

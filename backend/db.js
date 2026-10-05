@@ -40,6 +40,21 @@ const MIGRATIONS = [
         `CREATE INDEX IF NOT EXISTS idx_events_start ON events (start_datetime)`,
         `CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders (due_date)`,
     ],
+    // 3: notifiche push (dispositivi iscritti e avvisi già inviati)
+    [
+        `CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            endpoint TEXT NOT NULL UNIQUE,
+            p256dh TEXT NOT NULL,
+            auth TEXT NOT NULL,
+            user_agent TEXT,
+            created_at TEXT NOT NULL
+        )`,
+        `CREATE TABLE IF NOT EXISTS notifications_sent (
+            key TEXT PRIMARY KEY,
+            sent_at INTEGER NOT NULL
+        )`,
+    ],
 ];
 
 export async function migrate(db) {

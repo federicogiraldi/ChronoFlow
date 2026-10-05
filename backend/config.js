@@ -27,5 +27,14 @@ export function loadConfig(env = process.env) {
         secureCookies: isProduction,
         // Dietro un proxy (Vercel, Render...) serve per leggere l'IP reale del client
         trustProxy: env.TRUST_PROXY ? Number(env.TRUST_PROXY) || env.TRUST_PROXY : env.VERCEL ? 1 : false,
+        // Fuso orario usato dal server per calcolare quando inviare le notifiche.
+        // In locale vale quello del PC; su Vercel (che usa UTC) di default è l'Italia.
+        timezone: env.APP_TIMEZONE || (env.VERCEL ? 'Europe/Rome' : undefined),
+        // Notifiche push (app chiusa): chiavi VAPID generate con `npm run vapid`
+        vapidPublicKey: env.VAPID_PUBLIC_KEY || '',
+        vapidPrivateKey: env.VAPID_PRIVATE_KEY || '',
+        vapidSubject: env.VAPID_SUBJECT || 'mailto:chronoflow@example.com',
+        // Chiave segreta per il servizio esterno che ogni minuto chiama /api/cron/notify
+        cronSecret: env.CRON_SECRET || '',
     };
 }
