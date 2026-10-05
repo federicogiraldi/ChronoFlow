@@ -9,13 +9,13 @@ Funziona nel browser e si installa come app (PWA).
 
 [![CI](https://github.com/federicogiraldi/ChronoFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/federicogiraldi/ChronoFlow/actions/workflows/ci.yml)
 
-<img src="docs/screenshots/desktop-dark.png" alt="Vista mensile su desktop con i promemoria a sinistra" width="860" />
+<img src="docs/screenshots/desktop-dark-v2.png" alt="Vista mensile su desktop con i promemoria a sinistra" width="860" />
 
-<img src="docs/screenshots/mobile-month.png" alt="Vista mese sullo smartphone" width="240" />
+<img src="docs/screenshots/mobile-month-v2.png" alt="Vista mese sullo smartphone" width="240" />
 &nbsp;
-<img src="docs/screenshots/mobile-week.png" alt="Vista settimana sullo smartphone" width="240" />
+<img src="docs/screenshots/mobile-week-v2.png" alt="Vista settimana sullo smartphone" width="240" />
 &nbsp;
-<img src="docs/screenshots/mobile-reminders.png" alt="Promemoria sullo smartphone" width="240" />
+<img src="docs/screenshots/mobile-reminders-v2.png" alt="Promemoria sullo smartphone" width="240" />
 
 </div>
 
