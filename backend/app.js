@@ -7,7 +7,7 @@ import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import { createAuth } from './auth.js';
 import { createPush } from './push.js';
-import { errorHandler, HttpError } from './errors.js';
+import { databaseDiagnostics, databaseErrorMessage, errorHandler, HttpError } from './errors.js';
 import { eventsRouter } from './routes/events.js';
 import { remindersRouter } from './routes/reminders.js';
 
@@ -52,13 +52,23 @@ export function createApp({ db, config, ready, serveStatic = true, push = create
         res.set('Cache-Control', 'no-store');
         next();
     });
-    if (ready)
-        api.use(async (req, res, next) => (await (typeof ready === 'function' ? ready() : ready), next()));
+    const waitReady = () => (typeof ready === 'function' ? ready() : ready);
 
+    // Stato del server e del database. Se il database rifiuta l'accesso, mostra informazioni
+    // NON segrete sulla configurazione (mai il token) per capire cosa non va.
     api.get('/health', async (req, res) => {
-        await db.execute('SELECT 1');
-        res.json({ status: 'ok', timestamp: new Date().toISOString() });
+        try {
+            await waitReady();
+            await db.execute('SELECT 1');
+            res.json({ status: 'ok', timestamp: new Date().toISOString() });
+        } catch (error) {
+            const message = databaseErrorMessage(error);
+            if (!message) throw error;
+            res.status(503).json({ status: 'error', error: message, config: databaseDiagnostics(config) });
+        }
     });
+
+    if (ready) api.use(async (req, res, next) => (await waitReady(), next()));
 
     const auth = createAuth(config);
     api.use('/auth', auth.router);

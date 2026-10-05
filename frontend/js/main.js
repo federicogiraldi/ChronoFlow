@@ -1,7 +1,7 @@
 // Punto di ingresso del frontend: stato dell'applicazione, caricamento dati e gestione delle interazioni.
 import { api, ApiError, onUnauthorized } from './api.js';
 import { periodLabel, renderCalendar, renderSearchResults, shiftDate } from './calendar.js';
-import { formatDateTime, parseLocal, toDateKey, toLocalDateTime } from './dates.js';
+import { formatDateTime, parseLocal, startOfDay, toDateKey, toLocalDateTime } from './dates.js';
 import { buildICS, parseICS } from './ics.js';
 import * as notifications from './notifications.js';
 import { RECURRENCE_LABELS } from './recurrence.js';
@@ -46,6 +46,7 @@ const mobileQuery = window.matchMedia('(max-width: 768px)');
 const state = {
     view: readPref('cf-view', 'month'),
     date: new Date(),
+    selectedDay: startOfDay(new Date()), // giorno selezionato nel mese su smartphone
     events: [],
     reminders: [],
     search: '',
@@ -148,6 +149,7 @@ function renderCalendarArea() {
     });
     if (searching) {
         $('period-label').textContent = 'Ricerca';
+        $('period-label').classList.remove('long');
         renderSearchResults(container, {
             events: filteredEvents(),
             query: state.search.trim(),
@@ -155,12 +157,17 @@ function renderCalendarArea() {
         });
         return;
     }
-    $('period-label').textContent = periodLabel(state.view, state.date);
+    const label = periodLabel(state.view, state.date);
+    $('period-label').textContent = label;
+    $('period-label').classList.toggle('long', label.length > 16);
     renderCalendar(container, {
         view: state.view,
         date: state.date,
         events: filteredEvents(),
-        maxChips: mobileQuery.matches ? 2 : 3,
+        maxChips: 3,
+        compact: mobileQuery.matches,
+        selectedDate: state.selectedDay,
+        onSelectDay: selectDay,
         onOpenDay: (day) => setView('day', day),
         onCreateAt: (day) => openEventForm({ day }),
         onOpenEvent: showDetails,
@@ -202,6 +209,7 @@ function updateCategories() {
 function setView(view, date = state.date) {
     state.view = view;
     state.date = date;
+    if (view !== 'month') state.selectedDay = startOfDay(date);
     writePref('cf-view', view);
     if (state.search) {
         state.search = '';
@@ -212,7 +220,42 @@ function setView(view, date = state.date) {
 
 function navigate(direction) {
     state.date = direction === 0 ? new Date() : shiftDate(state.view, state.date, direction);
+    // Nel mese si seleziona oggi se è nel mese mostrato, altrimenti il primo giorno
+    const today = new Date();
+    const sameMonth =
+        state.date.getFullYear() === today.getFullYear() && state.date.getMonth() === today.getMonth();
+    state.selectedDay =
+        state.view === 'month' && !sameMonth
+            ? new Date(state.date.getFullYear(), state.date.getMonth(), 1)
+            : startOfDay(state.view === 'month' ? today : state.date);
     renderCalendarArea();
+}
+
+// Smartphone: tocco su un giorno del mese (se è del mese accanto, ci si sposta lì)
+function selectDay(day) {
+    state.selectedDay = day;
+    if (day.getMonth() !== state.date.getMonth()) state.date = day;
+    renderCalendarArea();
+}
+
+// Giorno proposto per un nuovo evento: quello mostrato o selezionato (nel mese su desktop, nessuno)
+function newEventDay() {
+    if (state.view !== 'month') return state.date;
+    return mobileQuery.matches ? state.selectedDay : null;
+}
+
+function toggleSearch(open) {
+    const header = document.querySelector('.app-header');
+    const show = open ?? !header.classList.contains('search-open');
+    header.classList.toggle('search-open', show);
+    $('search-toggle').setAttribute('aria-expanded', String(show));
+    if (show) {
+        $('search-input').focus();
+    } else if (state.search || $('search-input').value) {
+        $('search-input').value = '';
+        state.search = '';
+        renderCalendarArea();
+    }
 }
 
 // ==========================================
@@ -384,7 +427,10 @@ async function saveEvent(e) {
         $('event-dialog').close();
         showToast(state.editingEventId ? 'Evento aggiornato' : 'Evento creato', 'success');
         // Mostriamo il periodo in cui si trova l'evento appena salvato
-        if (!state.search) state.date = parseLocal(data.start_datetime);
+        if (!state.search) {
+            state.date = parseLocal(data.start_datetime);
+            state.selectedDay = startOfDay(state.date);
+        }
         await reloadEvents();
     } catch (error) {
         if (error instanceof ApiError && error.details) showFieldErrors(form, error.details);
@@ -742,9 +788,7 @@ function setupEventListeners() {
     document.querySelectorAll('.view-switch button').forEach((button) => {
         button.addEventListener('click', () => setView(button.dataset.view));
     });
-    $('new-event-btn').addEventListener('click', () =>
-        openEventForm({ day: state.view === 'month' ? null : state.date })
-    );
+    $('new-event-btn').addEventListener('click', () => openEventForm({ day: newEventDay() }));
 
     // Ricerca e filtro
     let searchTimer;
@@ -754,6 +798,10 @@ function setupEventListeners() {
             state.search = e.target.value;
             renderCalendarArea();
         }, 150);
+    });
+    $('search-toggle').addEventListener('click', () => toggleSearch());
+    $('search-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && mobileQuery.matches) toggleSearch(false);
     });
     $('category-filter').addEventListener('change', (e) => {
         state.category = e.target.value;
@@ -850,6 +898,7 @@ function setupEventListeners() {
     $('sidebar-backdrop').addEventListener('click', () => toggleSidebar(false));
     mobileQuery.addEventListener('change', () => {
         toggleSidebar(false);
+        document.querySelector('.app-header').classList.remove('search-open');
         renderCalendarArea();
     });
 
@@ -873,11 +922,11 @@ function setupEventListeners() {
             ArrowLeft: () => navigate(-1),
             ArrowRight: () => navigate(1),
             t: () => navigate(0),
-            n: () => openEventForm({ day: state.view === 'month' ? null : state.date }),
+            n: () => openEventForm({ day: newEventDay() }),
             m: () => setView('month'),
             s: () => setView('week'),
             g: () => setView('day'),
-            '/': () => $('search-input').focus(),
+            '/': () => (mobileQuery.matches ? toggleSearch(true) : $('search-input').focus()),
         };
         const action = actions[e.key];
         if (action) {

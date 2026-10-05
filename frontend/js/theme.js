@@ -19,7 +19,7 @@ export function applyTheme(theme) {
 
     const dark =
         theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#121212' : '#f5f6f8');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0f1115' : '#f6f7fb');
 }
 
 export function setTheme(theme) {

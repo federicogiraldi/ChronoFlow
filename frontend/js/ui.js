@@ -9,8 +9,13 @@ export function el(tag, attrs = {}, ...children) {
         if (key === 'className') node.className = value;
         else if (key === 'text') node.textContent = value;
         else if (key === 'dataset') Object.assign(node.dataset, value);
-        else if (key === 'style') Object.assign(node.style, value);
-        else if (key.startsWith('on')) node.addEventListener(key.slice(2).toLowerCase(), value);
+        else if (key === 'style') {
+            // Le proprietà personalizzate (--nome) si impostano solo con setProperty
+            for (const [prop, v] of Object.entries(value)) {
+                if (prop.startsWith('--')) node.style.setProperty(prop, v);
+                else node.style[prop] = v;
+            }
+        } else if (key.startsWith('on')) node.addEventListener(key.slice(2).toLowerCase(), value);
         else node.setAttribute(key, value === true ? '' : value);
     }
     for (const child of children.flat()) {

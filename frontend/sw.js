@@ -2,7 +2,7 @@
 // - File dell'app: prima la rete (così gli aggiornamenti arrivano subito), poi la cache se offline.
 // - Elenco eventi e promemoria: prima la rete, poi l'ultima copia salvata se offline.
 // - Tutte le altre chiamate API (modifiche, login) passano sempre dalla rete.
-const CACHE = 'chronoflow-v3';
+const CACHE = 'chronoflow-v4';
 const APP_SHELL = [
     './',
     'index.html',

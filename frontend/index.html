@@ -4,7 +4,7 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         <meta name="description" content="ChronoFlow: calendario e promemoria personale" />
-        <meta name="theme-color" content="#121212" />
+        <meta name="theme-color" content="#0f1115" />
         <meta name="color-scheme" content="light dark" />
         <title>ChronoFlow</title>
         <link rel="manifest" href="manifest.webmanifest" />
@@ -37,14 +37,21 @@
             <div class="header-actions">
                 <button
                     type="button"
-                    id="reminders-toggle"
+                    id="search-toggle"
                     class="icon-btn mobile-only"
-                    aria-controls="sidebar"
+                    aria-controls="search-input"
                     aria-expanded="false"
+                    aria-label="Cerca"
                 >
-                    <span aria-hidden="true">✓</span>
-                    <span class="visually-hidden">Promemoria</span>
-                    <span id="reminders-badge" class="badge" hidden></span>
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                        <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2" />
+                        <path
+                            d="m16 16 4.5 4.5"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                        />
+                    </svg>
                 </button>
                 <button type="button" id="theme-btn" class="icon-btn">
                     <span aria-hidden="true">◐</span>
@@ -151,12 +158,45 @@
                     </div>
                     <div class="toolbar-right">
                         <div class="view-switch" role="group" aria-label="Vista del calendario">
-                            <button type="button" data-view="month" aria-pressed="true">Mese</button>
-                            <button type="button" data-view="week" aria-pressed="false">Settimana</button>
-                            <button type="button" data-view="day" aria-pressed="false">Giorno</button>
+                            <button type="button" data-view="month" aria-pressed="true">
+                                <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <rect x="3.5" y="5" width="17" height="15" rx="2.5" />
+                                    <path d="M3.5 10h17M8 3v4M16 3v4M8 14h2M14 14h2M8 17h2" />
+                                </svg>
+                                <span>Mese</span>
+                            </button>
+                            <button type="button" data-view="week" aria-pressed="false">
+                                <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <rect x="3.5" y="5" width="17" height="15" rx="2.5" />
+                                    <path d="M3.5 10h17M8 3v4M16 3v4M9.5 10v10M14.5 10v10" />
+                                </svg>
+                                <span>Settimana</span>
+                            </button>
+                            <button type="button" data-view="day" aria-pressed="false">
+                                <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <rect x="3.5" y="5" width="17" height="15" rx="2.5" />
+                                    <path d="M3.5 10h17M8 3v4M16 3v4M8 14h8M8 17h5" />
+                                </svg>
+                                <span>Giorno</span>
+                            </button>
                         </div>
+                        <button
+                            type="button"
+                            id="reminders-toggle"
+                            class="mobile-only"
+                            aria-controls="sidebar"
+                            aria-expanded="false"
+                        >
+                            <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
+                                <path d="m8 12 3 3 5-6" />
+                            </svg>
+                            <span>Promemoria</span>
+                            <span id="reminders-badge" class="badge" hidden></span>
+                        </button>
                         <button type="button" id="new-event-btn" class="btn btn-primary">
-                            + Nuovo evento
+                            <span class="btn-plus">+</span>
+                            <span class="btn-label">Nuovo evento</span>
                         </button>
                     </div>
                 </div>
