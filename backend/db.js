@@ -64,6 +64,27 @@ const MIGRATIONS = [
             sent_at INTEGER NOT NULL
         )`,
     ],
+    // 4: categorie con colore fisso. Le categorie esistenti nascono dagli eventi (con il loro
+    // colore più usato) e da qui in poi il colore di un evento è sempre quello della sua categoria.
+    [
+        `CREATE TABLE IF NOT EXISTS categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+            color TEXT NOT NULL
+        )`,
+        `INSERT OR IGNORE INTO categories (name, color)
+         SELECT TRIM(category), color FROM (
+             SELECT category, color, COUNT(*) AS n FROM events
+             WHERE category IS NOT NULL AND TRIM(category) != ''
+             GROUP BY category, color
+             ORDER BY n DESC
+         )`,
+        `UPDATE events SET
+             category = (SELECT c.name FROM categories c WHERE c.name = TRIM(events.category)),
+             color = (SELECT c.color FROM categories c WHERE c.name = TRIM(events.category))
+         WHERE category IS NOT NULL AND TRIM(category) != ''`,
+        `UPDATE events SET category = NULL, color = '#3788d8' WHERE category IS NULL OR TRIM(category) = ''`,
+    ],
 ];
 
 export async function migrate(db) {

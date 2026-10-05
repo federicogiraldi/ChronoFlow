@@ -18,16 +18,19 @@ import {
     showToast,
 } from './ui.js';
 
+// Colori delle categorie, nello stesso ordine con cui il server li assegna alle nuove categorie
 const COLORS = [
-    ['#3788d8', 'Blu'],
     ['#2e9e6b', 'Verde'],
-    ['#d9534f', 'Rosso'],
-    ['#e8a33d', 'Arancione'],
     ['#8e5bd6', 'Viola'],
+    ['#e8a33d', 'Arancione'],
+    ['#d9534f', 'Rosso'],
     ['#d6569b', 'Rosa'],
     ['#2aa5b8', 'Turchese'],
     ['#6c757d', 'Grigio'],
+    ['#3788d8', 'Blu'],
 ];
+const NO_CATEGORY_COLOR = '#3788d8';
+const NEW_CATEGORY = '__new__';
 const NOTIFY_LABELS = {
     0: "All'inizio",
     5: '5 minuti prima',
@@ -49,6 +52,8 @@ const state = {
     selectedDay: startOfDay(new Date()), // giorno selezionato nel mese su smartphone
     events: [],
     reminders: [],
+    categories: [],
+    editingCategory: null, // categoria aperta nel form (null = nuova)
     search: '',
     category: '',
     showCompleted: readPref('cf-show-completed', 'true') === 'true',
@@ -82,9 +87,14 @@ function writePref(key, value) {
 // ==========================================
 async function loadData({ silent = false } = {}) {
     try {
-        const [events, reminders] = await Promise.all([api.listEvents(), api.listReminders()]);
+        const [events, reminders, categories] = await Promise.all([
+            api.listEvents(),
+            api.listReminders(),
+            api.listCategories(),
+        ]);
         state.events = events;
         state.reminders = reminders;
+        state.categories = categories;
         state.loadedAt = Date.now();
         render();
     } catch (error) {
@@ -96,7 +106,8 @@ async function loadData({ silent = false } = {}) {
 }
 
 async function reloadEvents() {
-    state.events = await api.listEvents();
+    // Salvando un evento può nascere una nuova categoria: ricarichiamo anche quelle
+    [state.events, state.categories] = await Promise.all([api.listEvents(), api.listCategories()]);
     renderCalendarArea();
     updateCategories();
 }
@@ -193,12 +204,10 @@ function renderRemindersArea() {
 }
 
 function updateCategories() {
-    const categories = [...new Set(state.events.map((e) => e.category).filter(Boolean))].sort((a, b) =>
-        a.localeCompare(b, 'it')
-    );
-    $('categories-list').replaceChildren(...categories.map((c) => el('option', { value: c })));
+    const categories = state.categories.map((c) => c.name);
+    // Se la categoria filtrata è stata rinominata o eliminata, togliamo il filtro
+    if (state.category && !categories.includes(state.category)) state.category = '';
     const select = $('category-filter');
-    if (state.category && !categories.includes(state.category)) categories.push(state.category);
     select.replaceChildren(
         el('option', { value: '' }, 'Tutte le categorie'),
         ...categories.map((c) => el('option', { value: c, selected: c === state.category }, c))
@@ -261,23 +270,40 @@ function toggleSearch(open) {
 // ==========================================
 // EVENTI: FORM DI CREAZIONE / MODIFICA
 // ==========================================
-function setupColorOptions() {
-    $('color-options').replaceChildren(
-        ...COLORS.map(([value, name]) =>
+// Scelta della categoria: "pastiglie" colorate. Il colore non si sceglie qui: è quello della categoria.
+function renderCategoryOptions(selected) {
+    const chip = (value, label, color) =>
+        el(
+            'label',
+            { className: 'category-chip' },
+            el('input', { type: 'radio', name: 'category-choice', value, checked: value === selected }),
             el(
-                'label',
-                { className: 'color-option', title: name },
-                el('input', { type: 'radio', name: 'color', value, 'aria-label': name }),
-                el('span', { className: 'swatch', style: { backgroundColor: value }, 'aria-hidden': 'true' })
+                'span',
+                {},
+                color ? el('span', { className: 'color-dot', style: { backgroundColor: color } }) : null,
+                label
             )
-        )
+        );
+    $('category-options').replaceChildren(
+        chip('', 'Nessuna', NO_CATEGORY_COLOR),
+        ...state.categories.map((c) => chip(c.name, c.name, c.color)),
+        chip(NEW_CATEGORY, '+ Nuova', null)
     );
+    $('new-category-group').hidden = selected !== NEW_CATEGORY;
 }
 
-function setColor(color) {
-    const radios = [...document.querySelectorAll('#color-options input')];
-    const match = radios.find((r) => r.value === color);
-    (match || radios[0]).checked = true;
+function selectedCategoryChoice() {
+    return document.querySelector('input[name="category-choice"]:checked')?.value ?? '';
+}
+
+function onCategoryChoiceChange() {
+    const isNew = selectedCategoryChoice() === NEW_CATEGORY;
+    $('new-category-group').hidden = !isNew;
+    if (isNew) $('event-new-category').focus();
+}
+
+function categoryByName(name) {
+    return state.categories.find((c) => c.name.toLowerCase() === name?.toLowerCase());
 }
 
 // Cambia il tipo dei campi data tra "data e ora" e "solo data" (eventi di tutto il giorno)
@@ -357,11 +383,13 @@ function openEventForm({ event = null, copyOf = null, day = null } = {}) {
 
     $('event-title').value = source?.title ?? '';
     $('event-description').value = source?.description ?? '';
-    $('event-category').value = source?.category ?? (state.category || '');
+    // Nuovo evento: proponiamo la categoria filtrata, se c'è
+    const category = categoryByName(source ? source.category : state.category);
+    renderCategoryOptions(category ? category.name : '');
+    $('event-new-category').value = '';
     $('event-recurrence').value = source?.recurrence ?? 'none';
     $('event-recurrence-until').value = source?.recurrence_until ?? '';
     $('event-notify').value = source?.notify_minutes ?? '';
-    setColor(source?.color ?? COLORS[0][0]);
     updateRecurrenceFields();
 
     openDialog($('event-dialog'));
@@ -375,26 +403,33 @@ function updateRecurrenceFields() {
 }
 
 function readEventForm() {
-    const form = $('event-form');
     const allDay = $('event-all-day').checked;
     const recurrence = $('event-recurrence').value;
     const notify = $('event-notify').value;
     return {
         title: $('event-title').value.trim(),
         description: $('event-description').value.trim() || null,
-        category: $('event-category').value.trim() || null,
+        category: readCategory(),
         all_day: allDay,
         start_datetime: $('event-start').value,
         end_datetime: $('event-end').value,
-        color: form.querySelector('input[name="color"]:checked')?.value ?? COLORS[0][0],
         recurrence,
         recurrence_until: recurrence !== 'none' ? $('event-recurrence-until').value || null : null,
         notify_minutes: notify === '' ? null : Number(notify),
     };
 }
 
+function readCategory() {
+    const choice = selectedCategoryChoice();
+    if (choice === NEW_CATEGORY) return $('event-new-category').value.trim() || null;
+    return choice || null;
+}
+
 function validateEventForm(data) {
     const errors = {};
+    if (selectedCategoryChoice() === NEW_CATEGORY && !data.category) {
+        errors.category = 'Scrivi il nome della nuova categoria';
+    }
     if (!data.title) errors.title = 'Inserisci un titolo';
     if (!data.start_datetime) errors.start_datetime = 'Indica quando inizia';
     if (!data.end_datetime) errors.end_datetime = 'Indica quando finisce';
@@ -486,7 +521,12 @@ function showDetails(occurrence) {
     }
     if (event.notify_minutes !== null)
         add('Notifica', NOTIFY_LABELS[event.notify_minutes] ?? `${event.notify_minutes} minuti prima`);
-    if (event.category) add('Categoria', event.category);
+    if (event.category) {
+        add('Categoria', [
+            el('span', { className: 'color-dot', style: { backgroundColor: event.color } }),
+            ` ${event.category}`,
+        ]);
+    }
     if (event.description) add('Descrizione', event.description, 'description');
     $('details-list').replaceChildren(...rows);
 
@@ -512,6 +552,144 @@ async function deleteSelectedEvent() {
         await reloadEvents();
     } catch (error) {
         showError(error, 'Impossibile eliminare l’evento');
+    }
+}
+
+// ==========================================
+// CATEGORIE E COLORI
+// ==========================================
+function setupCategoryColors() {
+    $('category-colors').replaceChildren(
+        ...COLORS.map(([value, name]) =>
+            el(
+                'label',
+                { className: 'color-option', title: name },
+                el('input', { type: 'radio', name: 'color', value, 'aria-label': name }),
+                el('span', { className: 'swatch', style: { backgroundColor: value }, 'aria-hidden': 'true' })
+            )
+        )
+    );
+}
+
+// Primo colore non ancora usato da un'altra categoria (come fa il server)
+function suggestedColor() {
+    const used = state.categories.map((c) => c.color);
+    return COLORS.map(([value]) => value).find((c) => !used.includes(c)) ?? COLORS[0][0];
+}
+
+function renderCategoryManager() {
+    const list = $('category-manage-list');
+    if (!state.categories.length) {
+        list.replaceChildren(
+            el(
+                'li',
+                { className: 'empty-hint' },
+                'Nessuna categoria. Creane una qui sotto o dal form di un evento.'
+            )
+        );
+        return;
+    }
+    list.replaceChildren(
+        ...state.categories.map((category) =>
+            el(
+                'li',
+                {},
+                el(
+                    'button',
+                    {
+                        type: 'button',
+                        className: 'category-row',
+                        'aria-label': `Modifica la categoria ${category.name}`,
+                        onclick: () => openCategoryForm(category),
+                    },
+                    el('span', { className: 'swatch', style: { backgroundColor: category.color } }),
+                    el('span', { className: 'category-row-name' }, category.name),
+                    el(
+                        'span',
+                        { className: 'category-row-count' },
+                        category.events === 1 ? '1 evento' : `${category.events ?? 0} eventi`
+                    ),
+                    el('span', { className: 'category-row-chevron', 'aria-hidden': 'true' }, '›')
+                )
+            )
+        )
+    );
+}
+
+async function openCategoryManager() {
+    toggleMenu(false);
+    renderCategoryManager();
+    openDialog($('categories-dialog'));
+    try {
+        state.categories = await api.listCategories();
+        renderCategoryManager();
+    } catch (error) {
+        showError(error);
+    }
+}
+
+function openCategoryForm(category = null) {
+    state.editingCategory = category;
+    const form = $('category-form');
+    form.reset();
+    clearErrors(form);
+    $('category-dialog-title').textContent = category ? 'Modifica categoria' : 'Nuova categoria';
+    $('category-name').value = category?.name ?? '';
+    const color = category?.color ?? suggestedColor();
+    const radio = [...form.querySelectorAll('input[name="color"]')].find((r) => r.value === color);
+    if (radio) radio.checked = true;
+    $('delete-category-btn').hidden = !category;
+    openDialog($('category-dialog'));
+    $('category-name').focus();
+}
+
+async function afterCategoriesChanged() {
+    [state.events, state.categories] = await Promise.all([api.listEvents(), api.listCategories()]);
+    render();
+    renderCategoryManager();
+}
+
+async function saveCategory(e) {
+    e.preventDefault();
+    const form = $('category-form');
+    clearErrors(form);
+    const data = {
+        name: $('category-name').value.trim(),
+        color: form.querySelector('input[name="color"]:checked')?.value,
+    };
+    if (!data.name) return showFieldErrors(form, { name: 'Inserisci un nome' });
+    try {
+        if (state.editingCategory) await api.updateCategory(state.editingCategory.id, data);
+        else await api.createCategory(data);
+        $('category-dialog').close();
+        showToast(state.editingCategory ? 'Categoria aggiornata' : 'Categoria creata', 'success');
+        await afterCategoriesChanged();
+    } catch (error) {
+        if (error instanceof ApiError && error.status === 409) showFieldErrors(form, { name: error.message });
+        else if (error instanceof ApiError && error.details) showFieldErrors(form, error.details);
+        else showError(error, 'Impossibile salvare la categoria');
+    }
+}
+
+async function deleteCategory() {
+    const category = state.editingCategory;
+    const count = category.events ?? 0;
+    const confirmed = await confirmDialog({
+        title: `Eliminare “${category.name}”?`,
+        message: count
+            ? `${count === 1 ? 'L’evento' : `I ${count} eventi`} di questa categoria ${count === 1 ? 'resterà' : 'resteranno'}, senza categoria.`
+            : 'La categoria non ha eventi.',
+        confirmLabel: 'Elimina',
+        danger: true,
+    });
+    if (!confirmed) return;
+    try {
+        await api.deleteCategory(category.id);
+        $('category-dialog').close();
+        showToast('Categoria eliminata', 'success');
+        await afterCategoriesChanged();
+    } catch (error) {
+        showError(error, 'Impossibile eliminare la categoria');
     }
 }
 
@@ -866,6 +1044,11 @@ function setupEventListeners() {
         toggleMenu(false);
         toggleNotifications();
     });
+    $('categories-btn').addEventListener('click', openCategoryManager);
+    $('add-category-btn').addEventListener('click', () => openCategoryForm());
+    $('category-form').addEventListener('submit', saveCategory);
+    $('delete-category-btn').addEventListener('click', deleteCategory);
+    $('category-options').addEventListener('change', onCategoryChoiceChange);
     $('import-btn').addEventListener('click', () => {
         toggleMenu(false);
         $('ics-file').click();
@@ -986,6 +1169,34 @@ function setupEventListeners() {
 // ==========================================
 // AVVIO
 // ==========================================
+// iPhone: la tastiera copre la pagina senza ridimensionarla. Teniamo aggiornate le misure dell'area
+// davvero visibile (visualViewport) così i form possono restare tutti sopra la tastiera (vedi style.css).
+function trackKeyboard() {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const root = document.documentElement;
+    const update = () => {
+        root.style.setProperty('--vv-height', `${viewport.height}px`);
+        root.style.setProperty('--vv-top', `${viewport.offsetTop}px`);
+        const typing = document.activeElement?.matches?.(
+            'input:not([type="checkbox"]):not([type="radio"]), textarea, select'
+        );
+        // clientHeight è l'altezza della pagina, che su iPhone non cambia quando compare la tastiera
+        const open = Boolean(typing) && root.clientHeight - viewport.height > 120;
+        const wasOpen = root.classList.contains('keyboard-open');
+        root.classList.toggle('keyboard-open', open);
+        // Appena il foglio si adatta, riportiamo in vista il campo su cui si sta scrivendo
+        if (open && !wasOpen) {
+            requestAnimationFrame(() => document.activeElement?.scrollIntoView({ block: 'nearest' }));
+        }
+    };
+    viewport.addEventListener('resize', update);
+    viewport.addEventListener('scroll', update);
+    document.addEventListener('focusin', () => setTimeout(update, 60));
+    document.addEventListener('focusout', () => setTimeout(update, 60));
+    update();
+}
+
 async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
     try {
@@ -998,7 +1209,8 @@ async function registerServiceWorker() {
 async function init() {
     applyTheme(getTheme());
     updateThemeButton();
-    setupColorOptions();
+    setupCategoryColors();
+    trackKeyboard();
     setupEventListeners();
     updateNotificationsButton();
     registerServiceWorker();

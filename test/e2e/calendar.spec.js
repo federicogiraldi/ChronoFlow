@@ -16,7 +16,8 @@ test('crea, modifica ed elimina un evento', async ({ page }) => {
     await dialog.getByLabel('Titolo').fill('Riunione E2E');
     await dialog.getByLabel('Inizio').fill('2026-10-07T14:00');
     await dialog.getByLabel('Fine').fill('2026-10-07T15:00');
-    await dialog.getByLabel('Categoria').fill('Lavoro');
+    await dialog.getByRole('radio', { name: '+ Nuova' }).check();
+    await dialog.getByLabel('Nome della nuova categoria').fill('Lavoro');
     await dialog.getByRole('button', { name: 'Salva' }).click();
     await expect(dialog).not.toBeVisible();
 
@@ -178,4 +179,41 @@ test('attivazione delle notifiche', async ({ page, context }) => {
     await page.getByRole('button', { name: 'Altre opzioni' }).click();
     await page.getByRole('button', { name: 'Attiva notifiche' }).click();
     await expect(page.locator('.toast', { hasText: 'Notifiche attivate' })).toBeVisible();
+});
+
+test('categorie: il colore segue la categoria e si cambia in un punto solo', async ({ page }) => {
+    const create = async (title, day, chooseCategory) => {
+        await page.getByRole('button', { name: 'Nuovo evento' }).first().click();
+        const dialog = page.locator('#event-dialog');
+        await dialog.getByLabel('Titolo').fill(title);
+        await dialog.getByLabel('Inizio').fill(`2026-10-${day}T10:00`);
+        await dialog.getByLabel('Fine').fill(`2026-10-${day}T11:00`);
+        await chooseCategory(dialog);
+        await dialog.getByRole('button', { name: 'Salva' }).click();
+        await expect(dialog).not.toBeVisible();
+    };
+    // Prima volta: nuova categoria "Palestra"; seconda volta: la si sceglie tra le pastiglie
+    await create('Allenamento A', '12', async (d) => {
+        await d.getByRole('radio', { name: '+ Nuova' }).check();
+        await d.getByLabel('Nome della nuova categoria').fill('Palestra');
+    });
+    await create('Allenamento B', '13', (d) => d.getByRole('radio', { name: 'Palestra' }).check());
+
+    const chipA = page.locator('[data-date="2026-10-12"] .event-chip', { hasText: 'Allenamento A' });
+    const chipB = page.locator('[data-date="2026-10-13"] .event-chip', { hasText: 'Allenamento B' });
+    // Colore dell'evento (variabile --ev da cui il chip ricava le sue tinte)
+    const colorOf = (chip) => chip.evaluate((el) => el.style.getPropertyValue('--ev'));
+    expect(await colorOf(chipA)).toBe(await colorOf(chipB));
+
+    // Cambio colore da "Categorie e colori": entrambi gli eventi si aggiornano
+    await page.getByRole('button', { name: 'Altre opzioni' }).click();
+    await page.getByRole('button', { name: 'Categorie e colori' }).click();
+    await page.getByRole('button', { name: 'Modifica la categoria Palestra' }).click();
+    const form = page.locator('#category-dialog');
+    await form.getByLabel('Rosa').check({ force: true });
+    await form.getByRole('button', { name: 'Salva' }).click();
+    await expect(form).not.toBeVisible();
+    await page.locator('#categories-dialog').getByRole('button', { name: 'Chiudi' }).click();
+    await expect.poll(() => colorOf(chipA)).toBe('#d6569b');
+    expect(await colorOf(chipB)).toBe('#d6569b');
 });

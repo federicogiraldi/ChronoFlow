@@ -1,6 +1,7 @@
 import express from 'express';
 import { HttpError } from '../errors.js';
 import { normalizeDate, parseId, validateEvent } from '../validation.js';
+import { createCategories } from '../categories.js';
 
 const COLUMNS = [
     'title',
@@ -46,7 +47,8 @@ function insertStatement(event) {
     };
 }
 
-export function eventsRouter(db) {
+// categories: gestore delle categorie (il colore di un evento è quello della sua categoria)
+export function eventsRouter(db, categories = createCategories(db)) {
     const router = express.Router();
 
     async function findEvent(rawId) {
@@ -88,7 +90,7 @@ export function eventsRouter(db) {
     });
 
     router.post('/', async (req, res) => {
-        const event = validateOrThrow(req.body);
+        const event = await categories.apply(validateOrThrow(req.body));
         const info = await db.execute(insertStatement(event));
         res.status(201).json({ id: Number(info.lastInsertRowid), ...event, all_day: Boolean(event.all_day) });
     });
@@ -105,11 +107,11 @@ export function eventsRouter(db) {
         }
         const valid = [];
         const invalid = [];
-        list.forEach((item, index) => {
+        for (const [index, item] of list.entries()) {
             const { value, errors } = validateEvent(item);
             if (errors) invalid.push({ index, title: item?.title ?? null, errors });
-            else valid.push(value);
-        });
+            else valid.push(await categories.apply(value));
+        }
         if (valid.length) await db.batch(valid.map(insertStatement), 'write');
         res.status(201).json({ imported: valid.length, skipped: invalid.length, invalid });
     });
@@ -117,7 +119,7 @@ export function eventsRouter(db) {
     // Modifica completa di un evento (per gli eventi ricorrenti vale per tutta la serie)
     router.put('/:id', async (req, res) => {
         const existing = await findEvent(req.params.id);
-        const event = validateOrThrow(req.body);
+        const event = await categories.apply(validateOrThrow(req.body));
         await db.execute({
             sql: `UPDATE events SET ${COLUMNS.map((c) => `${c} = ?`).join(', ')} WHERE id = ?`,
             args: [...COLUMNS.map((c) => event[c]), existing.id],

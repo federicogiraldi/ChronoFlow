@@ -21,7 +21,8 @@ Funziona nel browser e si installa come app (PWA).
 
 ## Cosa fa
 
-- **Calendario** mese, settimana e giorno; eventi con orario o di tutto il giorno, colore, categoria, ripetizione (giorno, settimana, mese, anno).
+- **Calendario** mese, settimana e giorno; eventi con orario o di tutto il giorno e ripetizione (giorno, settimana, mese, anno).
+- **Categorie con colore fisso**: il colore di un evento è sempre quello della sua categoria; si cambia una volta sola da **⋮ → Categorie e colori**.
 - **Promemoria** con scadenza e priorità.
 - **Notifiche push** prima degli eventi e alla scadenza dei promemoria, anche ad app chiusa.
 - **Ricerca**, filtro per categoria, import/export **`.ics`** (Google, Apple, Outlook).
