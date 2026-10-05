@@ -2,88 +2,359 @@
 <html lang="it">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>ChronoFlow - Calendario e Promemoria</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        <meta name="description" content="ChronoFlow: calendario e promemoria personale" />
+        <meta name="theme-color" content="#121212" />
+        <meta name="color-scheme" content="light dark" />
+        <title>ChronoFlow</title>
+        <link rel="manifest" href="manifest.webmanifest" />
+        <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <script src="js/theme-init.js"></script>
         <link rel="stylesheet" href="style.css" />
+        <script type="module" src="js/main.js"></script>
     </head>
     <body>
+        <a class="skip-link" href="#calendar">Vai al calendario</a>
+
         <header class="app-header">
-            <h1>ChronoFlow</h1>
+            <h1 class="brand">
+                <img src="icons/icon.svg" alt="" width="28" height="28" />
+                <span>ChronoFlow</span>
+            </h1>
+
+            <div class="header-tools">
+                <label for="search-input" class="visually-hidden">Cerca eventi</label>
+                <input type="search" id="search-input" placeholder="Cerca eventi…" autocomplete="off" />
+                <label for="category-filter" class="visually-hidden">Filtra per categoria</label>
+                <select id="category-filter">
+                    <option value="">Tutte le categorie</option>
+                </select>
+            </div>
+
+            <div class="header-actions">
+                <button
+                    type="button"
+                    id="reminders-toggle"
+                    class="icon-btn mobile-only"
+                    aria-controls="sidebar"
+                    aria-expanded="false"
+                >
+                    <span aria-hidden="true">✓</span>
+                    <span class="visually-hidden">Promemoria</span>
+                    <span id="reminders-badge" class="badge" hidden></span>
+                </button>
+                <button type="button" id="theme-btn" class="icon-btn">
+                    <span aria-hidden="true">◐</span>
+                </button>
+                <div class="menu">
+                    <button
+                        type="button"
+                        id="menu-btn"
+                        class="icon-btn"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        aria-controls="menu-list"
+                        aria-label="Altre opzioni"
+                    >
+                        <span aria-hidden="true">⋮</span>
+                    </button>
+                    <div id="menu-list" class="menu-list" hidden>
+                        <button type="button" id="notifications-btn">Attiva notifiche</button>
+                        <button type="button" id="import-btn">Importa calendario (.ics)</button>
+                        <button type="button" id="export-btn">Esporta calendario (.ics)</button>
+                        <button type="button" id="logout-btn" hidden>Esci</button>
+                    </div>
+                </div>
+            </div>
         </header>
 
         <div class="app-container">
-            <aside class="sidebar">
-                <h2>Promemoria</h2>
-
-                <div class="add-reminder-form">
-                    <input type="text" id="new-reminder-input" placeholder="Nuovo promemoria..." />
-                    <button id="add-reminder-btn">+</button>
+            <aside id="sidebar" class="sidebar" aria-labelledby="reminders-title">
+                <div class="sidebar-header">
+                    <h2 id="reminders-title">Promemoria</h2>
+                    <button
+                        type="button"
+                        id="sidebar-close"
+                        class="icon-btn mobile-only"
+                        aria-label="Chiudi promemoria"
+                    >
+                        ×
+                    </button>
                 </div>
 
-                <div id="reminders-list" class="reminders-list">
-                    <p>Nessun promemoria al momento.</p>
+                <form id="reminder-form" class="reminder-form" novalidate>
+                    <div class="reminder-form-row">
+                        <label for="new-reminder-input" class="visually-hidden">Nuovo promemoria</label>
+                        <input
+                            type="text"
+                            id="new-reminder-input"
+                            name="title"
+                            placeholder="Nuovo promemoria…"
+                            maxlength="200"
+                            autocomplete="off"
+                        />
+                        <button
+                            type="submit"
+                            class="btn btn-primary btn-square"
+                            aria-label="Aggiungi promemoria"
+                        >
+                            +
+                        </button>
+                    </div>
+                    <details class="reminder-options">
+                        <summary>Scadenza e priorità</summary>
+                        <div class="reminder-form-row">
+                            <label class="stacked-label">
+                                <span>Scadenza</span>
+                                <input type="datetime-local" name="due_date" id="new-reminder-due" />
+                            </label>
+                            <label class="stacked-label">
+                                <span>Priorità</span>
+                                <select name="priority" id="new-reminder-priority">
+                                    <option value="low">Bassa</option>
+                                    <option value="medium" selected>Media</option>
+                                    <option value="high">Alta</option>
+                                </select>
+                            </label>
+                        </div>
+                    </details>
+                </form>
+
+                <ul id="reminders-list" class="reminders-list"></ul>
+
+                <div class="sidebar-footer">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="show-completed" checked />
+                        Mostra completati
+                    </label>
+                    <button type="button" id="clear-completed-btn" class="btn-link">
+                        Elimina completati
+                    </button>
                 </div>
             </aside>
+            <div id="sidebar-backdrop" class="sidebar-backdrop" hidden></div>
 
             <main class="calendar-view">
-                <div class="calendar-header">
-                    <div class="month-navigation">
-                        <button id="prev-month-btn" class="nav-btn">&lt;</button>
-                        <h2 id="current-month-label">Mese Anno</h2>
-                        <button id="next-month-btn" class="nav-btn">&gt;</button>
+                <div class="calendar-toolbar">
+                    <div class="period-nav">
+                        <button type="button" id="prev-btn" class="icon-btn" aria-label="Periodo precedente">
+                            ‹
+                        </button>
+                        <button type="button" id="today-btn" class="btn btn-secondary">Oggi</button>
+                        <button type="button" id="next-btn" class="icon-btn" aria-label="Periodo successivo">
+                            ›
+                        </button>
+                        <h2 id="period-label" aria-live="polite"></h2>
                     </div>
-                    <button id="open-modal-btn" class="btn-primary">+ Nuovo Evento</button>
+                    <div class="toolbar-right">
+                        <div class="view-switch" role="group" aria-label="Vista del calendario">
+                            <button type="button" data-view="month" aria-pressed="true">Mese</button>
+                            <button type="button" data-view="week" aria-pressed="false">Settimana</button>
+                            <button type="button" data-view="day" aria-pressed="false">Giorno</button>
+                        </div>
+                        <button type="button" id="new-event-btn" class="btn btn-primary">
+                            + Nuovo evento
+                        </button>
+                    </div>
                 </div>
 
-                <div id="calendar-grid" class="calendar-grid">
-                    <p>Caricamento calendario...</p>
+                <div id="calendar" class="calendar" tabindex="-1">
+                    <p class="loading">Caricamento calendario…</p>
                 </div>
             </main>
         </div>
 
-        <div id="event-modal" class="modal hidden">
-            <div class="modal-content">
-                <span id="close-modal-btn" class="close-btn">&times;</span>
-                <h2>Aggiungi Evento</h2>
-
-                <div class="form-group">
-                    <label for="event-title">Titolo Evento</label>
-                    <input type="text" id="event-title" placeholder="Es. Riunione di Progetto" />
+        <!-- Creazione / modifica evento -->
+        <dialog id="event-dialog" class="dialog" aria-labelledby="event-dialog-title">
+            <form id="event-form" novalidate>
+                <div class="dialog-header">
+                    <h2 id="event-dialog-title">Nuovo evento</h2>
+                    <button type="button" class="icon-btn" data-close aria-label="Chiudi">×</button>
                 </div>
 
                 <div class="form-group">
-                    <label for="event-start">Inizio</label>
-                    <input type="datetime-local" id="event-start" />
+                    <label for="event-title">Titolo</label>
+                    <input
+                        type="text"
+                        id="event-title"
+                        name="title"
+                        maxlength="200"
+                        required
+                        placeholder="Es. Riunione di progetto"
+                    />
+                    <p class="field-error" data-error-for="title"></p>
                 </div>
+
+                <label class="checkbox-label">
+                    <input type="checkbox" id="event-all-day" name="all_day" />
+                    Tutto il giorno
+                </label>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="event-start">Inizio</label>
+                        <input type="datetime-local" id="event-start" name="start_datetime" required />
+                        <p class="field-error" data-error-for="start_datetime"></p>
+                    </div>
+                    <div class="form-group">
+                        <label for="event-end">Fine</label>
+                        <input type="datetime-local" id="event-end" name="end_datetime" required />
+                        <p class="field-error" data-error-for="end_datetime"></p>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="event-recurrence">Ripetizione</label>
+                        <select id="event-recurrence" name="recurrence">
+                            <option value="none">Non si ripete</option>
+                            <option value="daily">Ogni giorno</option>
+                            <option value="weekly">Ogni settimana</option>
+                            <option value="monthly">Ogni mese</option>
+                            <option value="yearly">Ogni anno</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="recurrence-until-group" hidden>
+                        <label for="event-recurrence-until">Fino al (opzionale)</label>
+                        <input type="date" id="event-recurrence-until" name="recurrence_until" />
+                        <p class="field-error" data-error-for="recurrence_until"></p>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="event-category">Categoria</label>
+                        <input
+                            type="text"
+                            id="event-category"
+                            name="category"
+                            maxlength="50"
+                            list="categories-list"
+                            placeholder="Es. Lavoro"
+                        />
+                        <datalist id="categories-list"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="event-notify">Notifica</label>
+                        <select id="event-notify" name="notify_minutes">
+                            <option value="">Nessuna</option>
+                            <option value="0">All'inizio</option>
+                            <option value="5">5 minuti prima</option>
+                            <option value="15">15 minuti prima</option>
+                            <option value="30">30 minuti prima</option>
+                            <option value="60">1 ora prima</option>
+                            <option value="120">2 ore prima</option>
+                            <option value="1440">1 giorno prima</option>
+                        </select>
+                    </div>
+                </div>
+
+                <fieldset class="form-group color-picker">
+                    <legend>Colore</legend>
+                    <div id="color-options" class="color-options"></div>
+                </fieldset>
 
                 <div class="form-group">
-                    <label for="event-end">Fine</label>
-                    <input type="datetime-local" id="event-end" />
+                    <label for="event-description">Descrizione</label>
+                    <textarea id="event-description" name="description" rows="3" maxlength="2000"></textarea>
+                    <p class="field-error" data-error-for="description"></p>
                 </div>
 
-                <button id="save-event-btn" class="btn-primary">Salva nel Calendario</button>
+                <p class="form-note" id="recurrence-note" hidden>
+                    Le modifiche si applicano a tutte le ripetizioni dell'evento.
+                </p>
+
+                <div class="dialog-actions">
+                    <button type="button" class="btn btn-secondary" data-close>Annulla</button>
+                    <button type="submit" class="btn btn-primary" id="save-event-btn">Salva</button>
+                </div>
+            </form>
+        </dialog>
+
+        <!-- Dettagli evento -->
+        <dialog id="details-dialog" class="dialog" aria-labelledby="details-title">
+            <div class="dialog-header">
+                <h2 id="details-title">
+                    <span id="details-color" class="color-dot" aria-hidden="true"></span>
+                    <span id="details-title-text"></span>
+                </h2>
+                <button type="button" class="icon-btn" data-close aria-label="Chiudi">×</button>
             </div>
+            <dl class="details-list" id="details-list"></dl>
+            <div class="dialog-actions">
+                <button type="button" class="btn btn-danger" id="delete-event-btn">Elimina</button>
+                <button type="button" class="btn btn-secondary" id="duplicate-event-btn">Duplica</button>
+                <button type="button" class="btn btn-primary" id="edit-event-btn">Modifica</button>
+            </div>
+        </dialog>
+
+        <!-- Modifica promemoria -->
+        <dialog id="reminder-dialog" class="dialog" aria-labelledby="reminder-dialog-title">
+            <form id="reminder-edit-form" novalidate>
+                <div class="dialog-header">
+                    <h2 id="reminder-dialog-title">Modifica promemoria</h2>
+                    <button type="button" class="icon-btn" data-close aria-label="Chiudi">×</button>
+                </div>
+                <div class="form-group">
+                    <label for="reminder-edit-title">Titolo</label>
+                    <input type="text" id="reminder-edit-title" name="title" maxlength="200" required />
+                    <p class="field-error" data-error-for="title"></p>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="reminder-edit-due">Scadenza</label>
+                        <input type="datetime-local" id="reminder-edit-due" name="due_date" />
+                        <p class="field-error" data-error-for="due_date"></p>
+                    </div>
+                    <div class="form-group">
+                        <label for="reminder-edit-priority">Priorità</label>
+                        <select id="reminder-edit-priority" name="priority">
+                            <option value="low">Bassa</option>
+                            <option value="medium">Media</option>
+                            <option value="high">Alta</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="dialog-actions">
+                    <button type="button" class="btn btn-secondary" data-close>Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                </div>
+            </form>
+        </dialog>
+
+        <!-- Conferma generica (sostituisce confirm() del browser) -->
+        <dialog id="confirm-dialog" class="dialog dialog-small" aria-labelledby="confirm-title">
+            <form method="dialog">
+                <h2 id="confirm-title"></h2>
+                <p id="confirm-message"></p>
+                <div class="dialog-actions">
+                    <button type="submit" value="cancel" class="btn btn-secondary" id="confirm-cancel">
+                        Annulla
+                    </button>
+                    <button type="submit" value="ok" class="btn btn-danger" id="confirm-ok">Conferma</button>
+                </div>
+            </form>
+        </dialog>
+
+        <!-- Login (solo se APP_PASSWORD è impostata sul server) -->
+        <div id="login-screen" class="login-screen" hidden>
+            <form id="login-form" class="login-card">
+                <img src="icons/icon.svg" alt="" width="56" height="56" />
+                <h2>ChronoFlow</h2>
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" autocomplete="current-password" required />
+                <p class="field-error" id="login-error" role="alert"></p>
+                <button type="submit" class="btn btn-primary">Accedi</button>
+            </form>
         </div>
 
-        <div id="event-details-modal" class="modal hidden">
-            <div class="modal-content">
-                <span id="close-details-modal-btn" class="close-btn">&times;</span>
-                <h2 id="details-event-title">Titolo Evento</h2>
-
-                <div class="details-group">
-                    <strong>Inizio:</strong>
-                    <span id="details-event-start">-</span>
-                </div>
-
-                <div class="details-group">
-                    <strong>Fine:</strong>
-                    <span id="details-event-end">-</span>
-                </div>
-
-                <button id="delete-event-btn" class="btn-danger">Elimina Evento</button>
-            </div>
+        <input type="file" id="ics-file" accept=".ics,text/calendar" hidden />
+        <div id="offline-banner" class="offline-banner" role="status" hidden>
+            Sei offline: puoi consultare i dati, ma le modifiche non verranno salvate.
         </div>
-
-        <script src="app.js"></script>
+        <div id="toasts" class="toasts" aria-live="polite"></div>
     </body>
 </html>
