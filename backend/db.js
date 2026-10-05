@@ -1,25 +1,19 @@
-// Importiamo la libreria better-sqlite3 e il modulo path
-const Database = require('better-sqlite3');
-const path = require('path');
+// Connessione al database tramite @libsql/client.
+// Funziona sia con un file SQLite locale (file:...) sia con Turso (libsql://...),
+// così lo stesso codice gira in locale e in produzione.
+import { createClient } from '@libsql/client';
 
-// Definiamo il percorso dove verrà salvato il file del database
-// __dirname indica la cartella corrente (backend)
-const dbPath = path.join(__dirname, 'chronoflow.db');
+export function createDb({ url, authToken }) {
+    return createClient({ url, authToken });
+}
 
-// Inizializziamo la connessione.
-// Se il file chronoflow.db non esiste, better-sqlite3 lo creerà automaticamente.
-const db = new Database(dbPath, { 
-    // Attivando verbose, vedremo nel terminale tutte le query SQL eseguite (utile per il debug)
-    verbose: console.log 
-});
-
-// Funzione per creare le tabelle se non esistono già
-function initDB() {
-    console.log('🔄 Inizializzazione del database in corso...');
-
-    // Query SQL per la tabella EVENTI del Calendario
-    const createEventsTable = `
-        CREATE TABLE IF NOT EXISTS events (
+// Migrazioni dello schema, applicate in ordine una sola volta.
+// La versione corrente è salvata nella tabella schema_migrations.
+// NON modificare migrazioni già rilasciate: aggiungerne sempre di nuove in coda.
+const MIGRATIONS = [
+    // 1: schema della v1.0 (CREATE IF NOT EXISTS: compatibile con i database già esistenti)
+    [
+        `CREATE TABLE IF NOT EXISTS events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             description TEXT,
@@ -27,31 +21,57 @@ function initDB() {
             end_datetime TEXT NOT NULL,
             color TEXT DEFAULT '#3788d8',
             category TEXT
-        )
-    `;
-
-    // Query SQL per la tabella PROMEMORIA
-    // is_completed è un intero perché SQLite non ha un tipo booleano nativo (0 = falso, 1 = vero)
-    const createRemindersTable = `
-        CREATE TABLE IF NOT EXISTS reminders (
+        )`,
+        `CREATE TABLE IF NOT EXISTS reminders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             due_date TEXT,
             priority TEXT DEFAULT 'medium',
             is_completed INTEGER DEFAULT 0
-        )
-    `;
+        )`,
+    ],
+    // 2: eventi di tutto il giorno, ricorrenze, notifiche, indici
+    [
+        `ALTER TABLE events ADD COLUMN all_day INTEGER NOT NULL DEFAULT 0`,
+        `ALTER TABLE events ADD COLUMN recurrence TEXT NOT NULL DEFAULT 'none'`,
+        `ALTER TABLE events ADD COLUMN recurrence_until TEXT`,
+        `ALTER TABLE events ADD COLUMN notify_minutes INTEGER`,
+        `ALTER TABLE reminders ADD COLUMN created_at TEXT`,
+        `CREATE INDEX IF NOT EXISTS idx_events_start ON events (start_datetime)`,
+        `CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders (due_date)`,
+    ],
+];
 
-    // Eseguiamo le query in modo sincrono
-    db.exec(createEventsTable);
-    db.exec(createRemindersTable);
+export async function migrate(db) {
+    await db.execute(
+        `CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)`
+    );
+    const current = await currentVersion(db);
 
-    console.log('✅ Tabelle del database pronte e verificate.');
+    for (let i = current; i < MIGRATIONS.length; i++) {
+        const version = i + 1;
+        // Ogni migrazione è atomica: o vengono applicate tutte le sue istruzioni o nessuna.
+        try {
+            await db.batch(
+                [
+                    ...MIGRATIONS[i],
+                    {
+                        sql: 'INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)',
+                        args: [version, new Date().toISOString()],
+                    },
+                ],
+                'write'
+            );
+        } catch (error) {
+            // Due istanze serverless avviate insieme possono tentare la stessa migrazione:
+            // se nel frattempo l'ha applicata l'altra, proseguiamo.
+            if ((await currentVersion(db)) < version) throw error;
+        }
+    }
+    return MIGRATIONS.length;
 }
 
-// Esportiamo la connessione al db e la funzione di inizializzazione
-// per poterle usare in altri file (come server.js)
-module.exports = {
-    db,
-    initDB
-};
+async function currentVersion(db) {
+    const { rows } = await db.execute('SELECT MAX(version) AS v FROM schema_migrations');
+    return Number(rows[0]?.v ?? 0);
+}
