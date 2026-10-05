@@ -17,6 +17,11 @@ export default [
         },
     },
     {
+        // I test E2E contengono funzioni eseguite nel browser (page.evaluate)
+        files: ['test/e2e/**/*.js'],
+        languageOptions: { globals: { ...globals.node, ...globals.browser } },
+    },
+    {
         rules: {
             'no-unused-vars': ['error', { argsIgnorePattern: '^_', caughtErrors: 'none' }],
             eqeqeq: ['error', 'smart'],

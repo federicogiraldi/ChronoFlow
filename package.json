@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "node --test test/unit test/api",
+    "test": "node --test \"test/unit/*.test.js\" \"test/api/*.test.js\"",
     "test:e2e": "playwright test",
     "check": "npm run lint && npm run format:check && npm test"
   },
