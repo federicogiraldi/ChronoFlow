@@ -1,55 +1,40 @@
-// Importiamo le librerie necessarie
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
+// Avvio del server Node (uso locale o hosting tradizionale).
+import os from 'node:os';
+import { loadConfig } from './config.js';
+import { createDb, migrate } from './db.js';
+import { createApp } from './app.js';
 
-// Importiamo l'inizializzazione del database
-const { initDB } = require('./db');
+const config = loadConfig();
+const db = createDb({ url: config.databaseUrl, authToken: config.databaseAuthToken });
 
-// Importiamo le rotte API che abbiamo appena creato
-const apiRoutes = require('./routes/api');
+await migrate(db);
 
-// Inizializziamo l'applicazione Express
-const app = express();
+const app = createApp({ db, config });
 
-// CONFIGURAZIONE PORTA E HOST
-// Usiamo la porta 3000 (o quella definita nell'ambiente)
-const PORT = process.env.PORT || 3000;
-// '0.0.0.0' permette al server di rispondere anche ai dispositivi nella tua rete locale (es. iPhone)
-const HOST = '0.0.0.0';
+// Indirizzi IP della rete locale, per aprire l'app dal telefono
+function lanAddresses() {
+    return Object.values(os.networkInterfaces())
+        .flat()
+        .filter((net) => net && net.family === 'IPv4' && !net.internal)
+        .map((net) => net.address);
+}
 
-// MIDDLEWARE FONDAMENTALI
-// 1. Permette richieste da origini diverse (Cross-Origin Resource Sharing)
-app.use(cors());
-// 2. Permette ad Express di comprendere i dati inviati in formato JSON nelle richieste POST/PUT
-app.use(express.json());
+const server = app.listen(config.port, config.host, () => {
+    console.log('==================================================');
+    console.log('🚀 ChronoFlow avviato');
+    console.log(`💻 Locale:        http://localhost:${config.port}`);
+    for (const ip of lanAddresses()) console.log(`📱 Rete locale:   http://${ip}:${config.port}`);
+    console.log(`🔒 Password:      ${config.appPassword ? 'attiva' : 'disattivata (APP_PASSWORD vuota)'}`);
+    console.log('==================================================');
+});
 
-// SERVEREI FILE STATICI DEL FRONTEND
-// Diciamo ad Express che la cartella 'frontend' contiene file statici (HTML, CSS, JS)
-app.use(express.static(path.join(__dirname, '../frontend')));
-
-// REGISTRAZIONE ROTTE API
-// Diciamo ad Express che tutte le rotte definite in apiRoutes inizieranno con "/api"
-app.use('/api', apiRoutes);
-
-// ROTTA TEST API
-// Una semplice rotta per verificare che il server risponda correttamente
-app.get('/api/health', (req, res) => {
-    res.json({ 
-        status: 'ok', 
-        message: 'ChronoFlow Server è attivo e funzionante!',
-        timestamp: new Date()
+// Chiusura pulita (Ctrl+C o arresto del container)
+function shutdown() {
+    server.close(() => {
+        db.close();
+        process.exit(0);
     });
-});
-
-// Inizializziamo il database prima di avviare il server
-initDB();
-
-// AVVIO DEL SERVER
-app.listen(PORT, HOST, () => {
-    console.log(`==================================================`);
-    console.log(`🚀 Server ChronoFlow avviato con successo!`);
-    console.log(`💻 Accesso Locale (PC):     http://localhost:${PORT}`);
-    console.log(`📱 Accesso da Rete Locale: http://<INDIRIZZO-IP-DEL-TUO-PC>:${PORT}`);
-    console.log(`==================================================`);
-});
+    setTimeout(() => process.exit(1), 5000).unref();
+}
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

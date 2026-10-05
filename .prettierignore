@@ -1,7 +1,5 @@
 node_modules/
-.env
-.vercel/
-backend/*.db
-backend/*.db-*
+package-lock.json
 test-results/
 playwright-report/
+.vercel/

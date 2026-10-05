@@ -1,0 +1,9 @@
+{
+  "tabWidth": 4,
+  "singleQuote": true,
+  "printWidth": 110,
+  "trailingComma": "es5",
+  "overrides": [
+    { "files": ["*.json", "*.yml", "*.yaml", "*.md", "*.webmanifest"], "options": { "tabWidth": 2 } }
+  ]
+}
