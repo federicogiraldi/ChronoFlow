@@ -1,10 +1,19 @@
 // Connessione al database tramite @libsql/client.
 // Funziona sia con un file SQLite locale (file:...) sia con Turso (libsql://...),
 // così lo stesso codice gira in locale e in produzione.
-import { createClient } from '@libsql/client';
-
+// Per i database online (Turso) usiamo il client "web", che comunica via HTTPS e non ha
+// componenti nativi: su Vercel il modulo nativo potrebbe non essere incluso nel pacchetto.
+// Il client completo (con SQLite nativo) serve solo per i file locali.
 export function createDb({ url, authToken }) {
-    return createClient({ url, authToken });
+    const local = url.startsWith('file:') || url === ':memory:';
+    const client = (local ? import('@libsql/client') : import('@libsql/client/web')).then((m) =>
+        m.createClient({ url, authToken })
+    );
+    return {
+        execute: async (statement) => (await client).execute(statement),
+        batch: async (statements, mode) => (await client).batch(statements, mode),
+        close: () => client.then((c) => c.close()),
+    };
 }
 
 // Migrazioni dello schema, applicate in ordine una sola volta.
