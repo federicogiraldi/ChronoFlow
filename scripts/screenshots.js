@@ -100,10 +100,10 @@ async function shot(name, { mobile = false, scheme = 'dark', action } = {}) {
     console.log(`✔ ${name}.png`);
 }
 
-await shot('desktop-dark');
-await shot('mobile-month', { mobile: true });
-await shot('mobile-week', { mobile: true, scheme: 'light', action: (p) => p.click('[data-view=week]') });
-await shot('mobile-reminders', { mobile: true, action: (p) => p.click('#reminders-toggle') });
+await shot('desktop-dark-v2');
+await shot('mobile-month-v2', { mobile: true });
+await shot('mobile-week-v2', { mobile: true, scheme: 'light', action: (p) => p.click('[data-view=week]') });
+await shot('mobile-reminders-v2', { mobile: true, action: (p) => p.click('#reminders-toggle') });
 
 await browser.close();
 server.kill();
