@@ -25,5 +25,37 @@ test('creazione evento da mobile', async ({ page }) => {
     await dialog.getByLabel('Titolo').fill('Evento mobile');
     await dialog.getByRole('button', { name: 'Salva' }).click();
     await expect(dialog).not.toBeVisible();
-    await expect(page.locator('.event-chip', { hasText: 'Evento mobile' })).toBeVisible();
+    await expect(page.locator('.agenda .event-card', { hasText: 'Evento mobile' })).toBeVisible();
+});
+
+test('mese su mobile: toccando un giorno se ne vedono gli eventi', async ({ page }) => {
+    await page.getByRole('button', { name: '+ Nuovo evento' }).click();
+    const dialog = page.locator('#event-dialog');
+    await dialog.getByLabel('Titolo').fill('Dal dentista');
+    await dialog.getByLabel('Inizio').fill('2026-10-14T09:00');
+    await dialog.getByLabel('Fine').fill('2026-10-14T10:00');
+    await dialog.getByRole('button', { name: 'Salva' }).click();
+    await expect(dialog).not.toBeVisible();
+
+    await page.locator('[data-date="2026-10-13"] .day-select').click();
+    await expect(page.locator('#agenda-title')).toHaveText('Martedì 13 ottobre');
+    await expect(page.locator('.agenda')).not.toContainText('Dal dentista');
+
+    await page.locator('[data-date="2026-10-14"] .day-select').click();
+    await expect(page.locator('#agenda-title')).toHaveText('Mercoledì 14 ottobre');
+    await expect(page.locator('.agenda .event-card', { hasText: 'Dal dentista' })).toBeVisible();
+
+    // Il "+" propone il giorno selezionato
+    await page.getByRole('button', { name: '+ Nuovo evento' }).click();
+    await expect(page.locator('#event-start')).toHaveValue('2026-10-14T09:00');
+});
+
+test('ricerca su mobile dietro la lente', async ({ page }) => {
+    await expect(page.getByLabel('Cerca eventi')).toBeHidden();
+    await page.getByRole('button', { name: 'Cerca', exact: true }).click();
+    await page.getByLabel('Cerca eventi').fill('qualcosa');
+    await expect(page.locator('.search-summary')).toContainText('per “qualcosa”');
+    await page.getByRole('button', { name: 'Cerca', exact: true }).click();
+    await expect(page.getByLabel('Cerca eventi')).toBeHidden();
+    await expect(page.locator('#period-label')).toHaveText('Ottobre 2026');
 });

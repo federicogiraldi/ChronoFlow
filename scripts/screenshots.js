@@ -101,12 +101,8 @@ async function shot(name, { mobile = false, scheme = 'dark', action } = {}) {
 }
 
 await shot('desktop-dark');
-await shot('desktop-light', { scheme: 'light' });
-await shot('event-form', {
-    action: (p) => p.click('text=Riunione di progetto').then(() => p.click('#edit-event-btn')),
-});
-await shot('week-view', { scheme: 'light', action: (p) => p.click('[data-view=week]') });
 await shot('mobile-month', { mobile: true });
+await shot('mobile-week', { mobile: true, scheme: 'light', action: (p) => p.click('[data-view=week]') });
 await shot('mobile-reminders', { mobile: true, action: (p) => p.click('#reminders-toggle') });
 
 await browser.close();
