@@ -53,4 +53,9 @@ export const api = {
     updateReminder: (id, changes) => request('PATCH', `/reminders/${id}`, changes),
     deleteReminder: (id) => request('DELETE', `/reminders/${id}`),
     deleteCompletedReminders: () => request('DELETE', '/reminders/completed'),
+
+    pushConfig: () => request('GET', '/push/config'),
+    pushSubscribe: (subscription) => request('POST', '/push/subscribe', { subscription }),
+    pushUnsubscribe: (endpoint) => request('POST', '/push/unsubscribe', { endpoint }),
+    pushTest: () => request('POST', '/push/test'),
 };

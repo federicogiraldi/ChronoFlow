@@ -6,6 +6,7 @@ import express from 'express';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import { createAuth } from './auth.js';
+import { createPush } from './push.js';
 import { errorHandler, HttpError } from './errors.js';
 import { eventsRouter } from './routes/events.js';
 import { remindersRouter } from './routes/reminders.js';
@@ -14,7 +15,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FRONTEND_DIR = path.join(__dirname, '../frontend');
 
 // ready: Promise opzionale (es. migrazioni del DB) da attendere prima di servire le API
-export function createApp({ db, config, ready, serveStatic = true }) {
+// push: modulo notifiche già creato (opzionale, altrimenti viene creato qui)
+export function createApp({ db, config, ready, serveStatic = true, push = createPush({ db, config }) }) {
     const app = express();
     app.set('trust proxy', config.trustProxy);
     app.disable('x-powered-by');
@@ -60,6 +62,8 @@ export function createApp({ db, config, ready, serveStatic = true }) {
     api.use('/auth', auth.router);
     api.use('/events', auth.requireAuth, eventsRouter(db));
     api.use('/reminders', auth.requireAuth, remindersRouter(db));
+    api.use('/push', auth.requireAuth, push.router);
+    api.use('/cron', push.cronRouter);
     api.use((req, res, next) => next(new HttpError(404, 'Risorsa non trovata')));
 
     app.use('/api', api);

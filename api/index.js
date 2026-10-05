@@ -5,6 +5,8 @@ import { createDb, migrate } from '../backend/db.js';
 import { createApp } from '../backend/app.js';
 
 const config = loadConfig();
+// Vercel usa UTC: impostiamo il fuso orario per calcolare correttamente l'orario delle notifiche
+if (config.timezone) process.env.TZ = config.timezone;
 const db = createDb({ url: config.databaseUrl, authToken: config.databaseAuthToken });
 
 // Le migrazioni vengono eseguite una volta per ogni avvio a freddo della funzione

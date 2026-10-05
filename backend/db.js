@@ -1,10 +1,19 @@
 // Connessione al database tramite @libsql/client.
 // Funziona sia con un file SQLite locale (file:...) sia con Turso (libsql://...),
 // così lo stesso codice gira in locale e in produzione.
-import { createClient } from '@libsql/client';
-
+// Per i database online (Turso) usiamo il client "web", che comunica via HTTPS e non ha
+// componenti nativi: su Vercel il modulo nativo potrebbe non essere incluso nel pacchetto.
+// Il client completo (con SQLite nativo) serve solo per i file locali.
 export function createDb({ url, authToken }) {
-    return createClient({ url, authToken });
+    const local = url.startsWith('file:') || url === ':memory:';
+    const client = (local ? import('@libsql/client') : import('@libsql/client/web')).then((m) =>
+        m.createClient({ url, authToken })
+    );
+    return {
+        execute: async (statement) => (await client).execute(statement),
+        batch: async (statements, mode) => (await client).batch(statements, mode),
+        close: () => client.then((c) => c.close()),
+    };
 }
 
 // Migrazioni dello schema, applicate in ordine una sola volta.
@@ -39,6 +48,21 @@ const MIGRATIONS = [
         `ALTER TABLE reminders ADD COLUMN created_at TEXT`,
         `CREATE INDEX IF NOT EXISTS idx_events_start ON events (start_datetime)`,
         `CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders (due_date)`,
+    ],
+    // 3: notifiche push (dispositivi iscritti e avvisi già inviati)
+    [
+        `CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            endpoint TEXT NOT NULL UNIQUE,
+            p256dh TEXT NOT NULL,
+            auth TEXT NOT NULL,
+            user_agent TEXT,
+            created_at TEXT NOT NULL
+        )`,
+        `CREATE TABLE IF NOT EXISTS notifications_sent (
+            key TEXT PRIMARY KEY,
+            sent_at INTEGER NOT NULL
+        )`,
     ],
 ];
 

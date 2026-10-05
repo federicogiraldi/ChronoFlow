@@ -646,8 +646,25 @@ function updateNotificationsButton() {
 
 async function toggleNotifications() {
     try {
-        const enabled = await notifications.setEnabled(!notifications.isEnabled());
-        showToast(enabled ? 'Notifiche attivate' : 'Notifiche disattivate', 'success');
+        const mode = await notifications.setEnabled(!notifications.isEnabled());
+        if (mode === 'push') {
+            showToast(
+                'Notifiche attivate: arriveranno anche ad app chiusa. Ti ho inviato una prova.',
+                'success',
+                6000
+            );
+        } else if (mode === 'local') {
+            showToast('Notifiche attivate (solo mentre l’app è aperta)', 'success', 6000);
+            if (notifications.needsIosInstall()) {
+                showToast(
+                    'Su iPhone, per riceverle ad app chiusa aggiungi l’app alla schermata Home',
+                    'info',
+                    8000
+                );
+            }
+        } else {
+            showToast('Notifiche disattivate', 'success');
+        }
     } catch (error) {
         showError(error);
     }
@@ -690,6 +707,7 @@ async function login(e) {
         await api.login($('login-password').value);
         $('login-screen').hidden = true;
         $('logout-btn').hidden = false;
+        notifications.syncPush();
         await loadData();
     } catch (error) {
         errorText.textContent = error.message;
@@ -945,6 +963,7 @@ async function init() {
             showLogin();
             return;
         }
+        notifications.syncPush();
     } catch (error) {
         // Offline: proseguiamo, il service worker può fornire gli ultimi dati salvati
         if (navigator.onLine) showError(error, 'Impossibile contattare il server');

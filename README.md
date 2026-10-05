@@ -35,19 +35,19 @@ Funziona nel browser, si installa sul telefono come una vera app e resta consult
 
 ## ✨ Cosa sa fare
 
-|     |                                                                                                           |
-| --- | --------------------------------------------------------------------------------------------------------- |
-| 📅  | **Calendario** con vista mese, settimana e giorno                                                         |
-| 🗓️  | **Eventi** con orario o di tutto il giorno, anche su più giorni, con colore, categoria e descrizione      |
-| 🔁  | **Eventi che si ripetono** ogni giorno, settimana, mese o anno, con una data di fine se serve             |
-| ✅  | **Promemoria** con scadenza e priorità; quelli scaduti sono evidenziati in rosso                          |
-| 🔔  | **Notifiche** prima di un evento (da "all'inizio" a "1 giorno prima") e alla scadenza dei promemoria      |
-| 🔍  | **Ricerca** degli eventi e **filtro** per categoria                                                       |
-| 📥  | **Import ed export `.ics`** per passare gli eventi da e verso Google Calendar, Apple Calendario o Outlook |
-| 🌗  | **Tema** chiaro, scuro o automatico (segue l'impostazione del dispositivo)                                |
-| 📱  | **Installabile** su telefono e computer, e **consultabile offline**                                       |
-| 🔒  | **Protetta da password** quando la pubblichi online                                                       |
-| ♿  | **Usabile da tastiera** e con gli screen reader                                                           |
+|     |                                                                                                                                                          |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 📅  | **Calendario** con vista mese, settimana e giorno                                                                                                        |
+| 🗓️  | **Eventi** con orario o di tutto il giorno, anche su più giorni, con colore, categoria e descrizione                                                     |
+| 🔁  | **Eventi che si ripetono** ogni giorno, settimana, mese o anno, con una data di fine se serve                                                            |
+| ✅  | **Promemoria** con scadenza e priorità; quelli scaduti sono evidenziati in rosso                                                                         |
+| 🔔  | **Notifiche push sul telefono**, anche ad app chiusa e PC spento: prima di un evento (da "all'inizio" a "1 giorno prima") e alla scadenza dei promemoria |
+| 🔍  | **Ricerca** degli eventi e **filtro** per categoria                                                                                                      |
+| 📥  | **Import ed export `.ics`** per passare gli eventi da e verso Google Calendar, Apple Calendario o Outlook                                                |
+| 🌗  | **Tema** chiaro, scuro o automatico (segue l'impostazione del dispositivo)                                                                               |
+| 📱  | **Installabile** su telefono e computer, e **consultabile offline**                                                                                      |
+| 🔒  | **Protetta da password** quando la pubblichi online                                                                                                      |
+| ♿  | **Usabile da tastiera** e con gli screen reader                                                                                                          |
 
 ---
 
@@ -125,7 +125,14 @@ Scrivi nella casella **Cerca eventi** in alto: vedrai l'elenco di tutti gli even
    - per ogni evento con una **Notifica** impostata, con il preavviso scelto
    - per ogni promemoria alla sua **scadenza**; se ha solo la data, alle 9:00
 
-> Le notifiche arrivano mentre l'app è aperta, anche in una scheda in background o installata sul telefono. Vedi i [limiti noti](#%EF%B8%8F-limiti-noti).
+Quando le attivi, ricevi subito una **notifica di prova**.
+
+Le notifiche funzionano in due modi:
+
+- **Push, anche ad app chiusa e con il PC spento.** Il server invia l'avviso al telefono. Serve l'app [pubblicata online](#%EF%B8%8F-pubblicarla-online-gratis-vercel--turso) con le notifiche push configurate (passi 3 e 4 della guida).
+- **Solo con l'app aperta.** Se le push non sono configurate, è la pagina stessa a controllare gli avvisi, anche da una scheda in background.
+
+> **iPhone:** le notifiche push funzionano solo dopo aver aggiunto l'app alla schermata Home (iOS 16.4 o successivo). Attivale aprendo l'app dall'icona sulla Home, non da Safari.
 
 ### Installarla come app
 
@@ -180,14 +187,18 @@ I dati vengono salvati nel file `backend/chronoflow.db`. Se avevi già usato la 
 
 ## ☁️ Pubblicarla online gratis (Vercel + Turso)
 
-Per usare ChronoFlow da qualsiasi posto, ad esempio dal telefono fuori casa, servono due servizi, entrambi **gratuiti** per un uso personale:
+Per usare ChronoFlow da qualsiasi posto, ad esempio dal telefono fuori casa, servono tre servizi, tutti **gratuiti** per un uso personale e senza carta di credito:
 
-| Servizio                         | A cosa serve                                                  |
-| -------------------------------- | ------------------------------------------------------------- |
-| **[Turso](https://turso.tech)**  | Ospita il **database**, cioè dove vengono salvati i tuoi dati |
-| **[Vercel](https://vercel.com)** | Ospita l'**app**: la pagina web e il server che risponde      |
+| Servizio                                 | A cosa serve                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------- |
+| **[Turso](https://turso.tech)**          | Ospita il **database**, cioè dove vengono salvati i tuoi dati                   |
+| **[Vercel](https://vercel.com)**         | Ospita l'**app**: la pagina web e il server che risponde                        |
+| **[cron-job.org](https://cron-job.org)** | Ogni minuto "sveglia" il server per controllare se ci sono notifiche da inviare |
 
-> **Perché due servizi?** Gli hosting gratuiti cancellano i file a ogni riavvio, quindi un database salvato su file andrebbe perso. Turso conserva i dati in modo permanente.
+> **Perché tre servizi?**
+>
+> - Gli hosting gratuiti cancellano i file a ogni riavvio, quindi un database salvato su file andrebbe perso. Turso conserva i dati in modo permanente.
+> - Su Vercel il server "dorme" quando nessuno lo usa, e il piano gratuito permette i controlli automatici solo una volta al giorno. cron-job.org lo sveglia ogni minuto, così le notifiche partono puntuali.
 
 ### 1. Crea il database su Turso
 
@@ -197,23 +208,64 @@ Per usare ChronoFlow da qualsiasi posto, ad esempio dal telefono fuori casa, ser
    - l'**URL**, che inizia con `libsql://`
    - un **token**, che crei con il pulsante "Create token"
 
-### 2. Pubblica l'app su Vercel
+### 2. Prepara le chiavi segrete
+
+Sul tuo computer, nella cartella del progetto, esegui:
+
+```bash
+npm run vapid     # chiavi per le notifiche push
+npm run secret    # chiave per cron-job.org
+npm run secret    # chiave per i cookie di accesso
+```
+
+Tieni da parte i valori che compaiono: ti servono al passo successivo.
+
+> ⚠️ Sono chiavi **segrete**: non pubblicarle e non caricarle su GitHub.
+
+### 3. Pubblica l'app su Vercel
 
 1. Registrati su [vercel.com](https://vercel.com) con il tuo account GitHub. Il piano gratuito si chiama "Hobby".
 2. Clicca **Add New → Project** e scegli il repository **ChronoFlow**. Le impostazioni sono già pronte nel file `vercel.json`.
 3. Nella sezione **Environment Variables** aggiungi:
 
-   | Nome                  | Valore                                                        |
-   | --------------------- | ------------------------------------------------------------- |
-   | `DATABASE_URL`        | l'URL di Turso (`libsql://...`)                               |
-   | `DATABASE_AUTH_TOKEN` | il token di Turso                                             |
-   | `APP_PASSWORD`        | la password con cui entrerai nell'app                         |
-   | `SESSION_SECRET`      | una frase casuale lunga, ad esempio da `openssl rand -hex 32` |
-   | `NODE_ENV`            | `production`                                                  |
+   | Nome                  | Valore                                          |
+   | --------------------- | ----------------------------------------------- |
+   | `DATABASE_URL`        | l'URL di Turso (`libsql://...`)                 |
+   | `DATABASE_AUTH_TOKEN` | il token di Turso                               |
+   | `APP_PASSWORD`        | la password con cui entrerai nell'app           |
+   | `SESSION_SECRET`      | la terza chiave generata con `npm run secret`   |
+   | `NODE_ENV`            | `production`                                    |
+   | `VAPID_PUBLIC_KEY`    | la chiave pubblica di `npm run vapid`           |
+   | `VAPID_PRIVATE_KEY`   | la chiave privata di `npm run vapid`            |
+   | `VAPID_SUBJECT`       | `mailto:` seguito dalla tua email               |
+   | `CRON_SECRET`         | la seconda chiave generata con `npm run secret` |
 
 4. Premi **Deploy**. Dopo circa un minuto l'app è online su `https://<nome-progetto>.vercel.app`.
 
 Da quel momento, ogni modifica caricata sul branch `main` viene pubblicata in automatico.
+
+Se modifichi le variabili in un secondo momento, da **Deployments** scegli **Redeploy** perché abbiano effetto.
+
+### 4. Attiva il controllo ogni minuto con cron-job.org
+
+1. Registrati su [cron-job.org](https://cron-job.org). È gratuito.
+2. Clicca **Create cronjob** e compila:
+   - **URL:** `https://<nome-progetto>.vercel.app/api/cron/notify?key=<CRON_SECRET>`, sostituendo il valore di `CRON_SECRET`
+   - **Execution schedule:** "Every 1 minute"
+3. Salva. Nella cronologia delle esecuzioni dovresti vedere risposte `200 OK` con `{"enabled":true,"sent":0}`.
+
+> Per non mettere la chiave nell'indirizzo, in **Advanced → Headers** puoi aggiungere l'header `Authorization: Bearer <CRON_SECRET>` e usare l'URL senza `?key=`.
+
+### 5. Installa l'app sul telefono e attiva le notifiche
+
+1. Sul telefono apri `https://<nome-progetto>.vercel.app` ed entra con la tua password.
+2. Installala:
+   - **iPhone:** in Safari, Condividi → **"Aggiungi alla schermata Home"**
+   - **Android:** in Chrome, menu ⋮ → **"Installa app"**
+3. Apri l'app **dall'icona** appena creata, poi menu **⋮ → Attiva notifiche** e consenti.
+4. Arriva subito una notifica di prova "✅ Le notifiche funzionano!".
+
+Fatto: da ora gli avvisi arrivano anche con l'app chiusa e il PC spento. Puoi attivarle su più dispositivi, ad esempio telefono e PC.
 
 ### Spostare online i dati che hai in locale
 
@@ -249,6 +301,7 @@ flowchart LR
 Alcuni dettagli:
 
 - **Eventi ripetuti:** nel database un evento che si ripete è salvato **una sola volta**, insieme alla sua regola (ad esempio "ogni settimana"). È il browser a calcolare le singole ripetizioni da mostrare nel calendario.
+- **Notifiche push:** quando attivi le notifiche, il telefono si "iscrive" al server. Ogni minuto il server controlla eventi e promemoria e, quando è ora, invia l'avviso tramite il servizio push del telefono (Google per Android, Apple per iPhone). Il telefono lo mostra anche se l'app è chiusa. Ogni avviso viene inviato una sola volta.
 - **Offline:** il **service worker** è un piccolo programma che il browser tiene attivo in background. Conserva una copia dell'app e degli ultimi dati scaricati, così funziona anche senza connessione.
 - **Sicurezza:**
   - Il server controlla ogni dato ricevuto e mostra il testo inserito sempre come semplice testo, quindi non può eseguire codice nascosto (XSS).
@@ -298,16 +351,21 @@ scripts/                Generazione di icone e screenshot, server per i test
 
 Le impostazioni si leggono dalle **variabili d'ambiente**. In locale basta copiare `.env.example` in `.env` e modificarlo: `npm start` e `npm run dev` lo leggono in automatico.
 
-| Variabile             | Predefinito                  | Descrizione                                                         |
-| --------------------- | ---------------------------- | ------------------------------------------------------------------- |
-| `PORT`                | `3000`                       | Porta del server                                                    |
-| `HOST`                | `0.0.0.0`                    | `0.0.0.0` rende l'app raggiungibile dagli altri dispositivi di casa |
-| `DATABASE_URL`        | file `backend/chronoflow.db` | Database: `file:...` in locale, `libsql://...` per Turso            |
-| `DATABASE_AUTH_TOKEN` | –                            | Token di Turso                                                      |
-| `APP_PASSWORD`        | vuota (nessun login)         | Password per entrare nell'app                                       |
-| `SESSION_SECRET`      | ricavato dalla password      | Chiave segreta per firmare il cookie di accesso                     |
-| `SESSION_DAYS`        | `30`                         | Giorni dopo cui bisogna rifare il login                             |
-| `NODE_ENV`            | –                            | `production` attiva le protezioni per l'uso via https               |
+| Variabile             | Predefinito                          | Descrizione                                                                         |
+| --------------------- | ------------------------------------ | ----------------------------------------------------------------------------------- |
+| `PORT`                | `3000`                               | Porta del server                                                                    |
+| `HOST`                | tutte le interfacce                  | Lascialo vuoto: l'app risponde sia da questo PC sia dagli altri dispositivi di casa |
+| `DATABASE_URL`        | file `backend/chronoflow.db`         | Database: `file:...` in locale, `libsql://...` per Turso                            |
+| `DATABASE_AUTH_TOKEN` | –                                    | Token di Turso                                                                      |
+| `APP_PASSWORD`        | vuota (nessun login)                 | Password per entrare nell'app                                                       |
+| `SESSION_SECRET`      | ricavato dalla password              | Chiave segreta per firmare il cookie di accesso                                     |
+| `SESSION_DAYS`        | `30`                                 | Giorni dopo cui bisogna rifare il login                                             |
+| `NODE_ENV`            | –                                    | `production` attiva le protezioni per l'uso via https                               |
+| `VAPID_PUBLIC_KEY`    | –                                    | Chiave pubblica per le notifiche push (`npm run vapid`)                             |
+| `VAPID_PRIVATE_KEY`   | –                                    | Chiave privata per le notifiche push                                                |
+| `VAPID_SUBJECT`       | `mailto:chronoflow@example.com`      | Contatto richiesto dai servizi push: usa la tua email                               |
+| `CRON_SECRET`         | –                                    | Chiave per la rotta `/api/cron/notify` chiamata da cron-job.org                     |
+| `APP_TIMEZONE`        | fuso del PC; `Europe/Rome` su Vercel | Fuso orario usato per calcolare quando inviare le notifiche                         |
 
 > ⚠️ **Senza `APP_PASSWORD` chiunque raggiunga il server può vedere e modificare i tuoi dati.** Lasciala vuota solo se usi l'app sul tuo computer o nella rete di casa.
 
@@ -343,23 +401,28 @@ Tutte le risposte sono in JSON. In caso di errore la risposta è `{ "error": "me
 
 Se `APP_PASSWORD` è impostata, tutte le rotte tranne `/api/health` e `/api/auth/*` richiedono il login.
 
-| Metodo   | Rotta                      | Descrizione                                                                        |
-| -------- | -------------------------- | ---------------------------------------------------------------------------------- |
-| `GET`    | `/api/health`              | Stato del server e del database                                                    |
-| `GET`    | `/api/auth/status`         | `{ authRequired, authenticated }`                                                  |
-| `POST`   | `/api/auth/login`          | `{ password }`: imposta il cookie di sessione                                      |
-| `POST`   | `/api/auth/logout`         | Esce                                                                               |
-| `GET`    | `/api/events`              | Tutti gli eventi; con `?from=YYYY-MM-DD&to=YYYY-MM-DD` solo quelli dell'intervallo |
-| `GET`    | `/api/events/:id`          | Un evento                                                                          |
-| `POST`   | `/api/events`              | Crea un evento                                                                     |
-| `PUT`    | `/api/events/:id`          | Modifica un evento (tutta la serie, se si ripete)                                  |
-| `DELETE` | `/api/events/:id`          | Elimina un evento                                                                  |
-| `POST`   | `/api/events/import`       | `{ events: [...] }`: importazione in blocco, massimo 2000 eventi                   |
-| `GET`    | `/api/reminders`           | Promemoria, ordinati per stato, scadenza e priorità                                |
-| `POST`   | `/api/reminders`           | Crea un promemoria                                                                 |
-| `PATCH`  | `/api/reminders/:id`       | Aggiorna titolo, scadenza, priorità o completamento                                |
-| `DELETE` | `/api/reminders/:id`       | Elimina un promemoria                                                              |
-| `DELETE` | `/api/reminders/completed` | Elimina tutti i promemoria completati                                              |
+| Metodo   | Rotta                      | Descrizione                                                                           |
+| -------- | -------------------------- | ------------------------------------------------------------------------------------- |
+| `GET`    | `/api/health`              | Stato del server e del database                                                       |
+| `GET`    | `/api/auth/status`         | `{ authRequired, authenticated }`                                                     |
+| `POST`   | `/api/auth/login`          | `{ password }`: imposta il cookie di sessione                                         |
+| `POST`   | `/api/auth/logout`         | Esce                                                                                  |
+| `GET`    | `/api/events`              | Tutti gli eventi; con `?from=YYYY-MM-DD&to=YYYY-MM-DD` solo quelli dell'intervallo    |
+| `GET`    | `/api/events/:id`          | Un evento                                                                             |
+| `POST`   | `/api/events`              | Crea un evento                                                                        |
+| `PUT`    | `/api/events/:id`          | Modifica un evento (tutta la serie, se si ripete)                                     |
+| `DELETE` | `/api/events/:id`          | Elimina un evento                                                                     |
+| `POST`   | `/api/events/import`       | `{ events: [...] }`: importazione in blocco, massimo 2000 eventi                      |
+| `GET`    | `/api/reminders`           | Promemoria, ordinati per stato, scadenza e priorità                                   |
+| `POST`   | `/api/reminders`           | Crea un promemoria                                                                    |
+| `PATCH`  | `/api/reminders/:id`       | Aggiorna titolo, scadenza, priorità o completamento                                   |
+| `DELETE` | `/api/reminders/:id`       | Elimina un promemoria                                                                 |
+| `DELETE` | `/api/reminders/completed` | Elimina tutti i promemoria completati                                                 |
+| `GET`    | `/api/push/config`         | `{ enabled, publicKey }`: notifiche push disponibili sul server                       |
+| `POST`   | `/api/push/subscribe`      | `{ subscription }`: iscrive il dispositivo alle notifiche push                        |
+| `POST`   | `/api/push/unsubscribe`    | `{ endpoint }`: annulla l'iscrizione                                                  |
+| `POST`   | `/api/push/test`           | Invia una notifica di prova a tutti i dispositivi                                     |
+| `GET`    | `/api/cron/notify`         | Invia gli avvisi dovuti; richiede `?key=` o `Authorization: Bearer` con `CRON_SECRET` |
 
 **Campi di un evento:**
 
@@ -394,6 +457,7 @@ curl -X POST http://localhost:3000/api/events \
 
 ## ⚠️ Limiti noti
 
-- **Notifiche con l'app chiusa:** non arrivano. Servirebbe un servizio di notifiche push con un programma sempre attivo sul server, che non rientra nei piani gratuiti usati qui.
+- **Puntualità delle notifiche push:** possono arrivare fino a circa un minuto dopo l'orario previsto, perché il server controlla ogni minuto. In modalità risparmio energetico alcuni telefoni Android le ritardano ulteriormente.
+- **Notifiche in locale:** quando usi l'app solo sul PC, le push partono solo mentre `npm start` è in esecuzione.
 - **Fuso orario:** gli orari sono salvati come "ora locale", il che va bene se usi l'app sempre nello stesso fuso orario.
 - **Eventi ripetuti:** non si può modificare una singola ripetizione, le modifiche valgono per tutta la serie. Le regole più complesse dei file `.ics`, come "ogni 2 settimane" o "il primo lunedì del mese", vengono importate come evento singolo, con un avviso.
