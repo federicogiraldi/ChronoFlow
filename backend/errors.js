@@ -53,3 +53,24 @@ export function databaseErrorMessage(err) {
     }
     return null;
 }
+
+// Informazioni non segrete sulla configurazione del database, utili per confrontarle
+// con il risultato di `npm run db:check` sul PC
+export function databaseDiagnostics({ databaseUrl, databaseAuthToken }) {
+    const info = {
+        databaseHost: databaseUrl.startsWith('file:')
+            ? 'file locale'
+            : databaseUrl.replace(/^\w+:\/\//, '').split('/')[0],
+        tokenPresent: Boolean(databaseAuthToken),
+        tokenLength: databaseAuthToken?.length ?? 0,
+    };
+    try {
+        const payload = JSON.parse(Buffer.from(databaseAuthToken.split('.')[1], 'base64url').toString());
+        info.tokenDatabaseId = payload.id ?? null;
+        info.tokenAccess = payload.a ?? null;
+        info.tokenExpired = payload.exp ? payload.exp * 1000 < Date.now() : false;
+    } catch {
+        if (databaseAuthToken) info.tokenFormat = 'non valido';
+    }
+    return info;
+}
