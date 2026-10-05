@@ -14,7 +14,8 @@ import { remindersRouter } from './routes/reminders.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FRONTEND_DIR = path.join(__dirname, '../frontend');
 
-// ready: Promise opzionale (es. migrazioni del DB) da attendere prima di servire le API
+// ready: Promise, o funzione che restituisce una Promise, da attendere prima di servire le API
+// (es. migrazioni del DB)
 // push: modulo notifiche già creato (opzionale, altrimenti viene creato qui)
 export function createApp({ db, config, ready, serveStatic = true, push = createPush({ db, config }) }) {
     const app = express();
@@ -51,7 +52,8 @@ export function createApp({ db, config, ready, serveStatic = true, push = create
         res.set('Cache-Control', 'no-store');
         next();
     });
-    if (ready) api.use(async (req, res, next) => (await ready, next()));
+    if (ready)
+        api.use(async (req, res, next) => (await (typeof ready === 'function' ? ready() : ready), next()));
 
     api.get('/health', async (req, res) => {
         await db.execute('SELECT 1');

@@ -9,7 +9,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // quindi i dati già esistenti vengono riutilizzati).
 const DEFAULT_DB_URL = pathToFileURL(path.join(__dirname, 'chronoflow.db')).href;
 
-export function loadConfig(env = process.env) {
+// Toglie spazi e virgolette incollati per sbaglio (es. nelle Environment Variables di Vercel)
+function clean(value) {
+    if (typeof value !== 'string') return value;
+    const trimmed = value.trim();
+    const quoted = /^(['"])(.*)\1$/s.exec(trimmed);
+    return quoted ? quoted[2].trim() : trimmed;
+}
+
+export function loadConfig(rawEnv = process.env) {
+    const env = Object.fromEntries(Object.entries(rawEnv).map(([key, value]) => [key, clean(value)]));
     const isProduction = env.NODE_ENV === 'production';
     return {
         isProduction,

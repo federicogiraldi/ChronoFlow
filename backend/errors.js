@@ -21,6 +21,27 @@ export function errorHandler(err, req, res, next) {
     if (err instanceof HttpError) {
         return res.status(err.status).json({ error: err.message, details: err.details });
     }
+    const dbError = databaseErrorMessage(err);
+    if (dbError) {
+        console.error(`Database: ${dbError}`, err);
+        return res.status(503).json({ error: dbError });
+    }
     console.error('Errore non gestito:', err);
     res.status(500).json({ error: 'Errore interno del server' });
+}
+
+// Errori di connessione al database (Turso) tradotti in un messaggio utile per capire cosa correggere
+export function databaseErrorMessage(err) {
+    const status = err?.cause?.status ?? err?.status;
+    if (err?.code === 'SERVER_ERROR' && (status === 401 || status === 403)) {
+        return 'Il database ha rifiutato l’accesso: controlla DATABASE_AUTH_TOKEN (token valido, permessi di scrittura)';
+    }
+    if (err?.code === 'SERVER_ERROR' && status === 404) {
+        return 'Database non trovato: controlla DATABASE_URL';
+    }
+    const cause = err?.cause?.code ?? err?.code;
+    if (['ETIMEDOUT', 'ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNRESET'].includes(cause)) {
+        return 'Database non raggiungibile in questo momento: riprova tra poco';
+    }
+    return null;
 }
