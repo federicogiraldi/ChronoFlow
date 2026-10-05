@@ -54,6 +54,11 @@ export const api = {
     deleteReminder: (id) => request('DELETE', `/reminders/${id}`),
     deleteCompletedReminders: () => request('DELETE', '/reminders/completed'),
 
+    listCategories: () => request('GET', '/categories'),
+    createCategory: (category) => request('POST', '/categories', category),
+    updateCategory: (id, changes) => request('PATCH', `/categories/${id}`, changes),
+    deleteCategory: (id) => request('DELETE', `/categories/${id}`),
+
     pushConfig: () => request('GET', '/push/config'),
     pushSubscribe: (subscription) => request('POST', '/push/subscribe', { subscription }),
     pushUnsubscribe: (endpoint) => request('POST', '/push/unsubscribe', { endpoint }),

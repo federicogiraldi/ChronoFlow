@@ -2,7 +2,10 @@
 <html lang="it">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+        />
         <meta name="description" content="ChronoFlow: calendario e promemoria personale" />
         <meta name="theme-color" content="#0f1115" />
         <meta name="color-scheme" content="light dark" />
@@ -70,6 +73,7 @@
                     </button>
                     <div id="menu-list" class="menu-list" hidden>
                         <button type="button" id="notifications-btn">Attiva notifiche</button>
+                        <button type="button" id="categories-btn">Categorie e colori</button>
                         <button type="button" id="import-btn">Importa calendario (.ics)</button>
                         <button type="button" id="export-btn">Esporta calendario (.ics)</button>
                         <button type="button" id="logout-btn" hidden>Esci</button>
@@ -264,19 +268,30 @@
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="event-category">Categoria</label>
+                <!-- Il colore dell'evento è quello della categoria: non si sceglie qui -->
+                <fieldset class="form-group category-picker">
+                    <legend>Categoria</legend>
+                    <div id="category-options" class="category-options"></div>
+                    <div id="new-category-group" class="new-category" hidden>
+                        <label for="event-new-category" class="visually-hidden"
+                            >Nome della nuova categoria</label
+                        >
                         <input
                             type="text"
-                            id="event-category"
+                            id="event-new-category"
                             name="category"
                             maxlength="50"
-                            list="categories-list"
-                            placeholder="Es. Lavoro"
+                            placeholder="Nome della nuova categoria"
+                            autocomplete="off"
                         />
-                        <datalist id="categories-list"></datalist>
+                        <p class="form-hint">
+                            Riceverà un colore automaticamente. Puoi cambiarlo da ⋮ → Categorie e colori.
+                        </p>
                     </div>
+                    <p class="field-error" data-error-for="category"></p>
+                </fieldset>
+
+                <div class="form-row">
                     <div class="form-group">
                         <label for="event-notify">Notifica</label>
                         <select id="event-notify" name="notify_minutes">
@@ -291,11 +306,6 @@
                         </select>
                     </div>
                 </div>
-
-                <fieldset class="form-group color-picker">
-                    <legend>Colore</legend>
-                    <div id="color-options" class="color-options"></div>
-                </fieldset>
 
                 <div class="form-group">
                     <label for="event-description">Descrizione</label>
@@ -329,6 +339,53 @@
                 <button type="button" class="btn btn-secondary" id="duplicate-event-btn">Duplica</button>
                 <button type="button" class="btn btn-primary" id="edit-event-btn">Modifica</button>
             </div>
+        </dialog>
+
+        <!-- Elenco delle categorie -->
+        <dialog id="categories-dialog" class="dialog" aria-labelledby="categories-title">
+            <div class="dialog-header">
+                <h2 id="categories-title">Categorie e colori</h2>
+                <button type="button" class="icon-btn" data-close aria-label="Chiudi">×</button>
+            </div>
+            <p class="form-hint">
+                Il colore di ogni evento è quello della sua categoria. Tocca una categoria per cambiarne nome
+                o colore: tutti i suoi eventi si aggiornano.
+            </p>
+            <ul id="category-manage-list" class="category-list"></ul>
+            <div class="dialog-actions">
+                <button type="button" class="btn btn-primary" id="add-category-btn">+ Nuova categoria</button>
+            </div>
+        </dialog>
+
+        <!-- Creazione / modifica di una categoria -->
+        <dialog id="category-dialog" class="dialog dialog-small" aria-labelledby="category-dialog-title">
+            <form id="category-form" novalidate>
+                <div class="dialog-header">
+                    <h2 id="category-dialog-title">Nuova categoria</h2>
+                    <button type="button" class="icon-btn" data-close aria-label="Chiudi">×</button>
+                </div>
+                <div class="form-group">
+                    <label for="category-name">Nome</label>
+                    <input
+                        type="text"
+                        id="category-name"
+                        name="name"
+                        maxlength="50"
+                        required
+                        autocomplete="off"
+                    />
+                    <p class="field-error" data-error-for="name"></p>
+                </div>
+                <fieldset class="form-group">
+                    <legend>Colore</legend>
+                    <div id="category-colors" class="color-options"></div>
+                </fieldset>
+                <div class="dialog-actions">
+                    <button type="button" class="btn btn-danger" id="delete-category-btn">Elimina</button>
+                    <button type="button" class="btn btn-secondary" data-close>Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                </div>
+            </form>
         </dialog>
 
         <!-- Modifica promemoria -->

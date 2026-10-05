@@ -10,6 +10,8 @@ import { createPush } from './push.js';
 import { databaseDiagnostics, databaseErrorMessage, errorHandler, HttpError } from './errors.js';
 import { eventsRouter } from './routes/events.js';
 import { remindersRouter } from './routes/reminders.js';
+import { categoriesRouter } from './routes/categories.js';
+import { createCategories } from './categories.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FRONTEND_DIR = path.join(__dirname, '../frontend');
@@ -72,7 +74,9 @@ export function createApp({ db, config, ready, serveStatic = true, push = create
 
     const auth = createAuth(config);
     api.use('/auth', auth.router);
-    api.use('/events', auth.requireAuth, eventsRouter(db));
+    const categories = createCategories(db);
+    api.use('/events', auth.requireAuth, eventsRouter(db, categories));
+    api.use('/categories', auth.requireAuth, categoriesRouter(categories));
     api.use('/reminders', auth.requireAuth, remindersRouter(db));
     api.use('/push', auth.requireAuth, push.router);
     api.use('/cron', push.cronRouter);

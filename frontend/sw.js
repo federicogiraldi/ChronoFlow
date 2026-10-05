@@ -2,7 +2,7 @@
 // - File dell'app: prima la rete (così gli aggiornamenti arrivano subito), poi la cache se offline.
 // - Elenco eventi e promemoria: prima la rete, poi l'ultima copia salvata se offline.
 // - Tutte le altre chiamate API (modifiche, login) passano sempre dalla rete.
-const CACHE = 'chronoflow-v4';
+const CACHE = 'chronoflow-v5';
 const APP_SHELL = [
     './',
     'index.html',
@@ -23,7 +23,7 @@ const APP_SHELL = [
     'icons/icon.svg',
     'icons/icon-192.png',
 ];
-const CACHED_API = ['/api/events', '/api/reminders'];
+const CACHED_API = ['/api/events', '/api/reminders', '/api/categories'];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
