@@ -298,16 +298,16 @@ scripts/                Generazione di icone e screenshot, server per i test
 
 Le impostazioni si leggono dalle **variabili d'ambiente**. In locale basta copiare `.env.example` in `.env` e modificarlo: `npm start` e `npm run dev` lo leggono in automatico.
 
-| Variabile             | Predefinito                  | Descrizione                                                         |
-| --------------------- | ---------------------------- | ------------------------------------------------------------------- |
-| `PORT`                | `3000`                       | Porta del server                                                    |
-| `HOST`                | `0.0.0.0`                    | `0.0.0.0` rende l'app raggiungibile dagli altri dispositivi di casa |
-| `DATABASE_URL`        | file `backend/chronoflow.db` | Database: `file:...` in locale, `libsql://...` per Turso            |
-| `DATABASE_AUTH_TOKEN` | –                            | Token di Turso                                                      |
-| `APP_PASSWORD`        | vuota (nessun login)         | Password per entrare nell'app                                       |
-| `SESSION_SECRET`      | ricavato dalla password      | Chiave segreta per firmare il cookie di accesso                     |
-| `SESSION_DAYS`        | `30`                         | Giorni dopo cui bisogna rifare il login                             |
-| `NODE_ENV`            | –                            | `production` attiva le protezioni per l'uso via https               |
+| Variabile             | Predefinito                  | Descrizione                                                                         |
+| --------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
+| `PORT`                | `3000`                       | Porta del server                                                                    |
+| `HOST`                | tutte le interfacce          | Lascialo vuoto: l'app risponde sia da questo PC sia dagli altri dispositivi di casa |
+| `DATABASE_URL`        | file `backend/chronoflow.db` | Database: `file:...` in locale, `libsql://...` per Turso                            |
+| `DATABASE_AUTH_TOKEN` | –                            | Token di Turso                                                                      |
+| `APP_PASSWORD`        | vuota (nessun login)         | Password per entrare nell'app                                                       |
+| `SESSION_SECRET`      | ricavato dalla password      | Chiave segreta per firmare il cookie di accesso                                     |
+| `SESSION_DAYS`        | `30`                         | Giorni dopo cui bisogna rifare il login                                             |
+| `NODE_ENV`            | –                            | `production` attiva le protezioni per l'uso via https                               |
 
 > ⚠️ **Senza `APP_PASSWORD` chiunque raggiunga il server può vedere e modificare i tuoi dati.** Lasciala vuota solo se usi l'app sul tuo computer o nella rete di casa.
 

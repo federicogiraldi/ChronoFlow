@@ -14,7 +14,8 @@ export function loadConfig(env = process.env) {
     return {
         isProduction,
         port: Number(env.PORT) || 3000,
-        host: env.HOST || '0.0.0.0',
+        // Vuoto = tutte le interfacce, IPv4 e IPv6 (su Windows "localhost" può risolversi in ::1)
+        host: env.HOST || undefined,
         databaseUrl: env.DATABASE_URL || DEFAULT_DB_URL,
         databaseAuthToken: env.DATABASE_AUTH_TOKEN || undefined,
         // Se APP_PASSWORD è vuota l'app non richiede login (uso solo locale).
