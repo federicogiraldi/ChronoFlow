@@ -25,8 +25,9 @@ export function loadConfig(rawEnv = process.env) {
         port: Number(env.PORT) || 3000,
         // Vuoto = tutte le interfacce, IPv4 e IPv6 (su Windows "localhost" può risolversi in ::1)
         host: env.HOST || undefined,
-        databaseUrl: env.DATABASE_URL || DEFAULT_DB_URL,
-        databaseAuthToken: env.DATABASE_AUTH_TOKEN || undefined,
+        // Accettiamo anche i nomi usati negli esempi di Turso (TURSO_DATABASE_URL, TURSO_AUTH_TOKEN)
+        databaseUrl: env.DATABASE_URL || env.TURSO_DATABASE_URL || DEFAULT_DB_URL,
+        databaseAuthToken: env.DATABASE_AUTH_TOKEN || env.TURSO_AUTH_TOKEN || undefined,
         // Se APP_PASSWORD è vuota l'app non richiede login (uso solo locale).
         appPassword: env.APP_PASSWORD || '',
         sessionSecret: env.SESSION_SECRET || '',

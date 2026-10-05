@@ -1,6 +1,7 @@
 // Verifica la connessione al database configurato in .env (DATABASE_URL + DATABASE_AUTH_TOKEN).
 // Uso: npm run db:check
 // Non stampa mai il token: mostra solo le informazioni utili a capire perché viene rifiutato.
+import { existsSync, readFileSync } from 'node:fs';
 import { loadConfig } from '../backend/config.js';
 import { createDb } from '../backend/db.js';
 import { databaseErrorMessage } from '../backend/errors.js';
@@ -22,7 +23,22 @@ if (!/^(libsql|https):\/\//.test(url)) {
 }
 
 if (!token) {
-    console.log('\n❌ DATABASE_AUTH_TOKEN non è impostato nel file .env.');
+    console.log('\n❌ Il token non è stato trovato nel file .env.');
+    console.log('   Deve esserci una riga che inizia esattamente con: DATABASE_AUTH_TOKEN=');
+    console.log('   (tutto su una sola riga, senza spazi prima del nome).');
+    // Mostriamo solo i NOMI delle variabili presenti in .env (mai i valori), per scovare errori di battitura
+    if (existsSync('.env')) {
+        const lines = readFileSync('.env', 'utf8')
+            .split(/\r?\n/)
+            .filter((line) => line.trim());
+        console.log('\n   Righe trovate nel file .env (solo il nome):');
+        for (const line of lines) {
+            const name = line.includes('=') ? line.slice(0, line.indexOf('=')) : null;
+            console.log(name ? `   - "${name}"` : '   - (riga senza "=": forse il token è andato a capo?)');
+        }
+    } else {
+        console.log('   Il file .env non è stato trovato in questa cartella.');
+    }
     process.exit(1);
 }
 console.log(`Token:          ${token.length} caratteri, inizia con "${token.slice(0, 4)}…"`);
