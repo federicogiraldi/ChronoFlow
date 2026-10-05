@@ -9,9 +9,15 @@ const config = loadConfig();
 if (config.timezone) process.env.TZ = config.timezone;
 const db = createDb({ url: config.databaseUrl, authToken: config.databaseAuthToken });
 
-// Le migrazioni vengono eseguite una volta per ogni avvio a freddo della funzione
-const ready = migrate(db);
-// Evita il crash per "unhandled rejection": l'errore verrà restituito alla prima richiesta
-ready.catch((error) => console.error('Migrazione del database fallita:', error));
+// Le migrazioni vengono eseguite alla prima richiesta di ogni avvio a freddo della funzione.
+// Se falliscono (es. database momentaneamente irraggiungibile) si riprova alla richiesta successiva.
+let migration = null;
+function ready() {
+    migration ??= migrate(db).catch((error) => {
+        migration = null;
+        throw error;
+    });
+    return migration;
+}
 
 export default createApp({ db, config, ready, serveStatic: false });
